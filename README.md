@@ -1,4 +1,4 @@
-# 🎨 GiteeFreeImg
+# 🎨 FreeImg
 
 > 基于 Gitee AI 的免费 2K 图片生成器，每天可免费生成 1000 次，无任何限制。
 
@@ -18,7 +18,7 @@
 
 ## 🚀 在线体验
 
-访问官网即可使用：**[GiteeFreeImg 在线生成](https://giteefreeimg.shenzjd.com/)**
+访问官网即可使用：**[FreeImg 在线生成](https://freeimg.shenzjd.com/)**
 
 ## 📖 使用教程
 
@@ -71,10 +71,10 @@ npm run preview
 
 项目已配置 Docker 自动部署（`.github/workflows/docker.yml`），推送到 `main` 分支后会自动构建 Docker 镜像并部署到服务器。
 
-- 镜像推送到 `ghcr.io/wu529778790/giteefreeimg.shenzjd.com`
+- 镜像推送到 `ghcr.io/wu529778790/freeimg.shenzjd.com`
 - 通过 SSH 自动部署到服务器，nginx 托管静态文件
 
-访问地址：`https://giteefreeimg.shenzjd.com/`
+访问地址：`https://freeimg.shenzjd.com/`
 
 ## 📄 许可证
 

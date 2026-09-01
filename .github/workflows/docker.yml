@@ -12,7 +12,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  CONTAINER_NAME: giteefreeimg.shenzjd.com
+  CONTAINER_NAME: freeimg.shenzjd.com
 
 jobs:
   build-and-push:

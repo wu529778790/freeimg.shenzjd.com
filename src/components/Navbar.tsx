@@ -15,7 +15,7 @@ export default function Navbar() {
       <div className="container navbar-inner">
         <a href="#top" className="navbar-logo" onClick={() => setOpen(false)}>
           <span className="logo-icon">🎨</span>
-          <span className="logo-text">GiteeFreeImg</span>
+          <span className="logo-text">FreeImg</span>
         </a>
 
         <nav className={`navbar-links ${open ? 'open' : ''}`}>
@@ -28,7 +28,7 @@ export default function Navbar() {
             立即使用
           </a>
           <a
-            href="https://github.com/wu529778790/giteefreeimg.shenzjd.com"
+            href="https://github.com/wu529778790/freeimg.shenzjd.com"
             className="navbar-github"
             target="_blank"
             rel="noopener noreferrer"

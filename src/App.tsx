@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import Features from './components/Features'
@@ -6,32 +6,42 @@ import Generator from './components/Generator'
 import History from './components/History'
 import Tutorial from './components/Tutorial'
 import Footer from './components/Footer'
-import { HISTORY_LIMIT, STORAGE_KEYS } from './config'
+import { HISTORY_LIMIT } from './config'
+import { addHistory, clearHistory, loadHistory, removeHistory } from './utils/historyDB'
 import type { HistoryItem } from './types'
 
-function loadHistory(): HistoryItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.history)
-    return raw ? (JSON.parse(raw) as HistoryItem[]) : []
-  } catch {
-    return []
-  }
-}
-
 export default function App() {
-  const [history, setHistory] = useState<HistoryItem[]>(loadHistory)
+  const [history, setHistory] = useState<HistoryItem[]>([])
 
-  const handleHistoryAdd = (item: HistoryItem) => {
-    setHistory((prev) => {
-      const next = [item, ...prev].slice(0, HISTORY_LIMIT)
-      localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(next))
-      return next
+  // 组件挂载后从 IndexedDB 异步加载历史记录
+  useEffect(() => {
+    let cancelled = false
+    loadHistory().then((items) => {
+      if (!cancelled) setHistory(items)
     })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleHistoryAdd = async (item: HistoryItem) => {
+    // 先更新内存状态（最新在前）
+    setHistory((prev) => [item, ...prev].slice(0, HISTORY_LIMIT))
+    // 写入 IndexedDB
+    await addHistory(item)
+    // 若超出条数上限，删除最旧的记录
+    const all = await loadHistory()
+    if (all.length > HISTORY_LIMIT) {
+      const toRemove = all.slice(HISTORY_LIMIT)
+      for (const old of toRemove) {
+        await removeHistory(old.id)
+      }
+    }
   }
 
-  const handleHistoryClear = () => {
+  const handleHistoryClear = async () => {
     setHistory([])
-    localStorage.removeItem(STORAGE_KEYS.history)
+    await clearHistory()
   }
 
   return (
