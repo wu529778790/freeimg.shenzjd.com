@@ -97,6 +97,6 @@ jobs:
               --cpus=0.5 \
               --log-opt max-size=10m \
               --log-opt max-file=3 \
-              -p 6705:80 \
+              -p 6711:80 \
               "$IMAGE"
             sudo docker image prune -f
