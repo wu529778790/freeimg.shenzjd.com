@@ -97,7 +97,6 @@ jobs:
               --log-opt max-size=10m \
               --log-opt max-file=3 \
               -p 6711:3000 \
-              -e TURSO_URL="${{ secrets.TURSO_URL }}" \
-              -e TURSO_AUTH_TOKEN="${{ secrets.TURSO_AUTH_TOKEN }}" \
+              --env-file /opt/1panel/apps/openresty/openresty/www/sites/freeimg.shenzjd.com/index/.env \
               "$IMAGE"
             sudo docker image prune -f
