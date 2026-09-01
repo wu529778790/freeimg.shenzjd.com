@@ -66,10 +66,12 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
       return
     }
 
-    // 风格规格在前、用户内容在后（参考宝玉 skills 的做法：
-    // 详细风格指令会带跑模型，必须把用户内容放在 prompt 末尾并明确标记为主体）
+    // 内容"前后夹心"：扩散模型对 prompt 开头 token 权重最高，结尾重申可收尾强化
+    // "避文字"通过 negative_prompt 通道传达（这是扩散模型真正有效的负面指令）
+    const NEGATIVE_PROMPT =
+      'text, letters, words, chinese characters, watermark, signature, caption, title, subtitle, blurry, ugly, bad quality, low resolution, distorted'
     const finalPrompt = selectedStyle
-      ? `${selectedStyle.stylePrompt}\n\n## 创作内容（图片的主体，务必严格以以下描述为准）\n${prompt.trim()}`
+      ? `${prompt.trim()}\n\n${selectedStyle.stylePrompt}\n\n画面主体必须严格为以下内容：${prompt.trim()}`
       : prompt.trim()
 
     localStorage.setItem(STORAGE_KEYS.apiKey, apiKey.trim())
@@ -81,6 +83,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
     try {
       const res = await generateImage(apiKey.trim(), {
         prompt: finalPrompt,
+        negativePrompt: NEGATIVE_PROMPT,
         size,
         steps
       })

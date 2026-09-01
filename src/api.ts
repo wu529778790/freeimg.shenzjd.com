@@ -18,7 +18,7 @@ export async function generateImage(
   apiKey: string,
   params: GenerateParams
 ): Promise<{ dataUrl: string; ext: string }> {
-  const { prompt, size, steps } = params
+  const { prompt, size, steps, negativePrompt } = params
 
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -32,7 +32,8 @@ export async function generateImage(
       prompt,
       width: size.width,
       height: size.height,
-      num_inference_steps: steps
+      num_inference_steps: steps,
+      negative_prompt: negativePrompt
     })
   })
 

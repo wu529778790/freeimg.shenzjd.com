@@ -2,6 +2,17 @@
   "name": "z-image-turbo-generator",
   "private": true,
   "version": "1.0.0",
+  "description": "基于 Gitee AI 的免费 2K 图片生成器，内置 18000+ AI 提示词库与 12 种预设风格",
+  "keywords": [
+    "gitee-ai",
+    "z-image-turbo",
+    "ai-image-generator",
+    "text-to-image",
+    "free-image-generator",
+    "ai图片生成",
+    "免费图片生成",
+    "提示词库"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

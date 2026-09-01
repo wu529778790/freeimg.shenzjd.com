@@ -13,6 +13,8 @@ export interface GenerateParams {
   prompt: string
   size: SizeOption
   steps: number
+  // 负面提示词（告诉模型避开这些元素，如 "text, letters, watermark"）
+  negativePrompt?: string
 }
 
 // 生成结果
