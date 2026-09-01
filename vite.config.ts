@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages 部署在子路径下，需要设置 base 为仓库名
-  base: '/GiteeFreeImg/',
+  // Docker + nginx 部署，nginx 反代去掉路径前缀，容器内使用根路径
+  base: '/',
   plugins: [react()],
   server: {
     port: 5173,

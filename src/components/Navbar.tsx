@@ -28,7 +28,7 @@ export default function Navbar() {
             立即使用
           </a>
           <a
-            href="https://github.com/wu529778790/GiteeFreeImg"
+            href="https://github.com/wu529778790/giteefreeimg.shenzjd.com"
             className="navbar-github"
             target="_blank"
             rel="noopener noreferrer"

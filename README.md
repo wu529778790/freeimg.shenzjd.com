@@ -18,7 +18,7 @@
 
 ## 🚀 在线体验
 
-访问官网即可使用：**[GiteeFreeImg 在线生成](http://blog.shenzjd.com/GiteeFreeImg/)**
+访问官网即可使用：**[GiteeFreeImg 在线生成](https://blog.shenzjd.com/giteefreeimg.shenzjd.com/)**
 
 ## 📖 使用教程
 
@@ -69,9 +69,12 @@ npm run preview
 
 ## 🚢 部署
 
-项目已配置 GitHub Pages 自动部署（`.github/workflows/deploy.yml`），推送到 `main` 分支后会自动构建并部署。
+项目已配置 Docker 自动部署（`.github/workflows/docker.yml`），推送到 `main` 分支后会自动构建 Docker 镜像并部署到服务器。
 
-访问地址：`https://wu529778790.github.io/GiteeFreeImg/`
+- 镜像推送到 `ghcr.io/wu529778790/giteefreeimg.shenzjd.com`
+- 通过 SSH 自动部署到服务器，nginx 托管静态文件
+
+访问地址：`https://blog.shenzjd.com/giteefreeimg.shenzjd.com/`
 
 ## 📄 许可证
 
