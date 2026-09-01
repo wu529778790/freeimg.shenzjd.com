@@ -1,0 +1,201 @@
+.prompts-page {
+  padding: 40px 0 80px;
+  min-height: 100vh;
+}
+
+.prompts-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.prompts-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--primary), #7c5cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.prompts-header p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+/* 搜索框 */
+.prompts-search {
+  max-width: 560px;
+  margin: 0 auto 24px;
+}
+
+.prompts-search .input {
+  padding: 14px 18px;
+  font-size: 15px;
+  border-radius: 24px;
+}
+
+/* 筛选 */
+.prompts-filter,
+.prompts-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.filter-chip {
+  padding: 8px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.filter-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.filter-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.chip-count {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* 结果统计 */
+.prompts-count {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 16px 0 24px;
+}
+
+/* 网格 */
+.prompts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.prompt-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+.prompt-card-img {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.prompt-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.prompt-card:hover .prompt-card-img img {
+  transform: scale(1.05);
+}
+
+.prompt-card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.prompt-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prompt-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.prompt-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.prompt-tag {
+  padding: 3px 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.prompt-author {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.prompt-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.prompt-btn {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+/* 空状态 */
+.prompts-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 60px 0;
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .prompts-header h1 {
+    font-size: 28px;
+  }
+
+  .prompts-grid {
+    grid-template-columns: 1fr;
+  }
+}

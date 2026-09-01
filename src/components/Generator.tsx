@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { generateImage } from '../api'
 import { SIZE_OPTIONS, STORAGE_KEYS } from '../config'
 import type { HistoryItem, SizeOption } from '../types'
@@ -14,6 +14,28 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEYS.apiKey) || '')
   const [showKey, setShowKey] = useState(false)
   const [prompt, setPrompt] = useState('')
+
+  // 从提示词库跳转过来时，读取待填入的提示词
+  useEffect(() => {
+    const applyPendingPrompt = () => {
+      const pending = sessionStorage.getItem('pending_prompt')
+      if (pending) {
+        setPrompt(pending)
+        sessionStorage.removeItem('pending_prompt')
+        // 滚动到生成区域
+        setTimeout(() => {
+          document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+      }
+    }
+
+    // 挂载时读取一次（从提示词库跳转过来）
+    applyPendingPrompt()
+
+    // 监听自定义事件（首页热门提示词点击时触发）
+    window.addEventListener('use-prompt', applyPendingPrompt)
+    return () => window.removeEventListener('use-prompt', applyPendingPrompt)
+  }, [])
   const [size, setSize] = useState<SizeOption>(SIZE_OPTIONS[0])
   const [steps, setSteps] = useState(9)
   const [status, setStatus] = useState<StatusType>('idle')
