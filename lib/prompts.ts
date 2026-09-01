@@ -1,4 +1,5 @@
 import { getDb } from './turso'
+import { rewriteImgUrl } from './img-proxy'
 import type { PromptCategory, PromptItem } from '@/src/types'
 
 /** 数据库行结构 */
@@ -48,8 +49,8 @@ function rowToPrompt(row: PromptRow): PromptItem {
     authorLink: row.author_link,
     sourceLink: row.source_link,
     sourcePublishedAt: row.source_published_at,
-    media: row.media,
-    mediaThumbnail: row.media_thumbnail,
+    media: rewriteImgUrl(row.media),
+    mediaThumbnail: rewriteImgUrl(row.media_thumbnail),
     language: row.language,
     category: toCategory(row),
     featured: !!row.featured,
