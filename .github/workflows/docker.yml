@@ -7,6 +7,10 @@ on:
       - main
     tags:
       - 'v*'
+    # cdn/ 下是提示词缩略图静态资源(jsdmirror 直接读 GitHub 仓库),
+    # 不参与 Docker 构建,纯图片提交无需触发 CI/CD
+    paths-ignore:
+      - 'cdn/**'
   workflow_dispatch:
 
 env:
