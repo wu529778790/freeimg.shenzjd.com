@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const PAGE_SIZE = 24
 
-// 分类维度分组
+// 分类维度分组(作为左侧标题)
 const DIMENSIONS = [
   { key: 'useCases', label: '用途' },
   { key: 'styles', label: '风格' },
@@ -47,8 +47,6 @@ export default async function PromptsPage({ searchParams }: PageProps) {
     return `/prompts${qs ? `?${qs}` : ''}`
   }
 
-  const dimCategories = categories.filter((c) => c.dimension === dimension)
-
   return (
     <div className="prompts-page">
       <div className="container">
@@ -67,46 +65,33 @@ export default async function PromptsPage({ searchParams }: PageProps) {
           />
         </form>
 
-        {/* 维度筛选 */}
-        <div className="prompts-filter">
-          <a
-            href={buildUrl({ dimension: 'all', category: null, page: null })}
-            className={`filter-chip ${dimension === 'all' ? 'active' : ''}`}
-          >
-            全部
-          </a>
-          {DIMENSIONS.map((d) => (
-            <a
-              key={d.key}
-              href={buildUrl({ dimension: d.key, category: null, page: null })}
-              className={`filter-chip ${dimension === d.key ? 'active' : ''}`}
-            >
-              {d.label}
-            </a>
-          ))}
+        {/* 分类筛选:左侧维度标题,右侧平铺分类(再次点击已选分类可取消筛选) */}
+        <div className="prompts-categories">
+          {DIMENSIONS.map((d) => {
+            const groupCategories = categories.filter((c) => c.dimension === d.key)
+            if (groupCategories.length === 0) return null
+            return (
+              <div key={d.key} className="category-group">
+                <span className="category-group-label">{d.label}</span>
+                <div className="category-group-chips">
+                  {groupCategories.map((c) => {
+                    const active = String(category) === String(c.id)
+                    return (
+                      <a
+                        key={c.id}
+                        href={active ? buildUrl({ category: null, page: null }) : buildUrl({ category: c.id, page: null })}
+                        className={`filter-chip ${active ? 'active' : ''}`}
+                      >
+                        {c.name}
+                        <span className="chip-count">{c.count}</span>
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
-
-        {/* 分类筛选 */}
-        {dimension !== 'all' && (
-          <div className="prompts-categories">
-            <a
-              href={buildUrl({ category: null, page: null })}
-              className={`filter-chip ${category === 'all' ? 'active' : ''}`}
-            >
-              全部分类
-            </a>
-            {dimCategories.map((c) => (
-              <a
-                key={c.id}
-                href={buildUrl({ category: c.id, page: null })}
-                className={`filter-chip ${String(category) === String(c.id) ? 'active' : ''}`}
-              >
-                {c.name}
-                <span className="chip-count">{c.count}</span>
-              </a>
-            ))}
-          </div>
-        )}
 
         {/* 结果统计 */}
         <div className="prompts-count">

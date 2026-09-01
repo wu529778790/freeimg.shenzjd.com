@@ -46,14 +46,56 @@
   border-color: var(--primary);
 }
 
-/* 筛选 */
-.prompts-filter,
+/* 筛选:左侧维度标题,右侧平铺分类 */
 .prompts-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.category-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.category-group-label {
+  flex-shrink: 0;
+  width: 44px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 34px; /* 与分类 chip 高度对齐 */
+}
+
+.category-group-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  justify-content: center;
-  margin-bottom: 16px;
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .prompts-categories {
+    padding: 14px;
+  }
+
+  .category-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .category-group-label {
+    width: auto;
+    text-align: left;
+    line-height: 1.4;
+  }
 }
 
 .filter-chip {
