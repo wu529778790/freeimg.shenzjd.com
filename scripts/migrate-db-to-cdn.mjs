@@ -62,8 +62,8 @@ for (const r of rows) {
 
 console.log(`待更新 ${updates.length} 行,本地缺文件跳过 ${missingLocal} 行`)
 if (missingLocal > 0) {
-  console.error(`有 ${missingLocal} 行的图片在 cdn/prompts/ 里找不到,请先重跑 sync-cdn-images.mjs 补漏`)
-  process.exit(1)
+  // 缺文件行保留原始 URL 不动(多为上游已 404 的死链),其余正常迁移
+  console.warn(`警告: ${missingLocal} 行的图片在 cdn/prompts/ 里找不到,这些行保留原 URL`)
 }
 if (updates.length === 0) {
   console.log('没有需要更新的行,结束')
