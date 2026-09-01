@@ -1,0 +1,120 @@
+.tutorial {
+  padding: 80px 0;
+  background: var(--bg-soft);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.tutorial-steps {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.tutorial-step {
+  display: flex;
+  gap: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: all 0.3s;
+}
+
+.tutorial-step:hover {
+  border-color: var(--primary);
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 50%;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.step-content p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.step-link {
+  display: inline-block;
+  color: var(--primary);
+  font-size: 14px;
+  word-break: break-all;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+}
+
+.step-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.step-screenshot {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.step-screenshot img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-sm);
+}
+
+.tutorial-tip {
+  max-width: 720px;
+  margin: 32px auto 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--success-soft);
+  border: 1px solid rgba(82, 196, 26, 0.3);
+  border-radius: var(--radius-sm);
+}
+
+.tip-icon {
+  font-size: 20px;
+}
+
+.tutorial-tip p {
+  color: var(--success);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .tutorial-step {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,20 @@
+# 依赖
+node_modules
+
+# 构建产物
+dist
+dist-ssr
+
+# 日志
+*.log
+npm-debug.log*
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# 临时文件
+*.local
+.playwright-mcp

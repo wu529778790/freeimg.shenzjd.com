@@ -1,0 +1,216 @@
+.generator {
+  padding: 40px 0 80px;
+}
+
+.generator-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 36px;
+  box-shadow: var(--shadow);
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.textarea {
+  min-height: 160px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.key-input-wrap {
+  position: relative;
+}
+
+.key-input-wrap .input {
+  padding-right: 48px;
+}
+
+.key-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.key-toggle:hover {
+  opacity: 1;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.hint a {
+  color: var(--primary);
+}
+
+/* 尺寸选择 */
+.size-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.size-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.size-option:hover {
+  border-color: var(--primary);
+}
+
+.size-option.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.size-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.size-desc {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* 步数调节 */
+.steps-value {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.range-input {
+  width: 100%;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* 生成按钮 */
+.generate-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+/* 状态 */
+.status {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+.status-loading {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid rgba(250, 173, 20, 0.3);
+}
+
+.status-error {
+  background: var(--error-soft);
+  color: var(--error);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+}
+
+.status-success {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid rgba(82, 196, 26, 0.3);
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* 结果 */
+.result {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.result-img-wrap {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.result-img-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.download-btn {
+  padding: 12px 40px;
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .generator-card {
+    padding: 24px;
+  }
+
+  .size-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
