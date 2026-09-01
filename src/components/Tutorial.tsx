@@ -62,7 +62,7 @@ export default function Tutorial() {
         <div className="tutorial-tip">
           <span className="tip-icon">💡</span>
           <p>
-            令牌是免费体验访问令牌，每天有 1000 次免费生成额度，2K 分辨率，无任何限制。
+            令牌是免费体验访问令牌，每天有 100 张免费生成额度，2K 分辨率，无任何限制。
             注意：账号绑定手机号，请保护个人隐私，勿随意分享你的令牌。
           </p>
         </div>

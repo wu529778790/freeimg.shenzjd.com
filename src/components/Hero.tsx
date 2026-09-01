@@ -1,7 +1,7 @@
 import './Hero.css'
 
 const STATS = [
-  { value: '1000', label: '每日免费生成次数' },
+  { value: '100', label: '每日免费生成张数' },
   { value: '2K', label: '高清图片分辨率' },
   { value: '0', label: '使用门槛' }
 ]
@@ -20,7 +20,7 @@ export default function Hero() {
         </h1>
 
         <p className="hero-subtitle fade-in-up">
-          白嫖 Gitee AI 的 Z-Image-Turbo 模型，每天可免费生成 1000 次 2K 图片，无任何限制。
+          白嫖 Gitee AI 的 Z-Image-Turbo 模型，每天可免费生成 100 张 2K 图片，无任何限制。
           只需一个 API Key，即刻开启你的 AI 创作之旅。
         </p>
 

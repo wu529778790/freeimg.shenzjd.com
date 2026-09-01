@@ -9,7 +9,7 @@ export default function Footer() {
           <span className="logo-text">FreeImg</span>
         </div>
         <p className="footer-desc">
-          基于 Gitee AI 的免费 2K 图片生成工具，每天 1000 次免费额度。
+          基于 Gitee AI 的免费 2K 图片生成工具，每天 100 张免费额度。
         </p>
         <div className="footer-links">
           <a href="#features">功能特性</a>
