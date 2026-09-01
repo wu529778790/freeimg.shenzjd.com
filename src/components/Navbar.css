@@ -60,6 +60,18 @@
   background: var(--primary-hover);
 }
 
+.navbar-github {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.navbar-github:hover {
+  color: var(--text);
+}
+
 .navbar-toggle {
   display: none;
   flex-direction: column;
