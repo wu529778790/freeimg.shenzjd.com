@@ -1,5 +1,5 @@
 import { getDb } from './turso'
-import { rewriteImgUrl } from './img-proxy'
+import { rewriteImgUrl } from './cdn'
 import type { PromptCategory, PromptItem } from '@/src/types'
 
 /** 数据库行结构 */

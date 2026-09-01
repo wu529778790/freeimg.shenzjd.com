@@ -26,3 +26,4 @@ data/
 
 # TypeScript 编译缓存
 tsconfig.tsbuildinfo
+.codebuddy/
