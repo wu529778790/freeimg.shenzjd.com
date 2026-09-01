@@ -23,3 +23,6 @@ npm-debug.log*
 
 # 本地数据(原始爬取备份,已导入 Turso 数据库)
 data/
+
+# TypeScript 编译缓存
+tsconfig.tsbuildinfo

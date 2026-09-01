@@ -94,6 +94,22 @@
   margin-top: 0;
 }
 
+/* 风格预设折叠/展开 */
+.style-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.style-toggle:hover .hint {
+  color: var(--primary);
+}
+
+.style-arrow {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+}
+
 .style-group {
   margin-bottom: 12px;
 }

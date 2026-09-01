@@ -48,6 +48,8 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
   }, [])
   const [size, setSize] = useState<SizeOption>(SIZE_OPTIONS[0])
   const [selectedStyle, setSelectedStyle] = useState<StylePreset | null>(null)
+  // 风格预设默认折叠，需要时点击展开
+  const [styleOpen, setStyleOpen] = useState(false)
   const [steps, setSteps] = useState(9)
   const [status, setStatus] = useState<StatusType>('idle')
   const [statusMsg, setStatusMsg] = useState('')
@@ -69,7 +71,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
     // 内容"前后夹心"：扩散模型对 prompt 开头 token 权重最高，结尾重申可收尾强化
     // "避文字"通过 negative_prompt 通道传达（这是扩散模型真正有效的负面指令）
     const NEGATIVE_PROMPT =
-      'text, letters, words, chinese characters, watermark, signature, caption, title, subtitle, blurry, ugly, bad quality, low resolution, distorted'
+      'text, letters, words, chinese characters, chinese text, hanzi, characters, writing, written, typography, calligraphy, font, typeface, watermark, signature, caption, title, subtitle, headline, banner, label, sticker, stamp, logo, sign, OCR, garbled text, misspelled, blurry, ugly, bad quality, low resolution, distorted'
     const finalPrompt = selectedStyle
       ? `${prompt.trim()}\n\n${selectedStyle.stylePrompt}\n\n画面主体必须严格为以下内容：${prompt.trim()}`
       : prompt.trim()
@@ -178,12 +180,23 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
             ></textarea>
           </div>
 
-          {/* 风格预设（可选） */}
+          {/* 风格预设（可选，默认折叠） */}
           <div className="form-group">
-            <div className="style-label-row">
+            <div
+              className="style-label-row style-toggle"
+              onClick={() => setStyleOpen(!styleOpen)}
+            >
               <label htmlFor="style-presets">风格预设（可选）</label>
-              <span className="hint">不选择则直接使用你输入的提示词生成</span>
+              <span className="hint">
+                {styleOpen
+                  ? '点击收起'
+                  : selectedStyle
+                    ? `已选「${selectedStyle.name}」，点击展开可更换`
+                    : '不选择则直接使用你输入的提示词生成'}
+                <span className="style-arrow">{styleOpen ? '▲' : '▼'}</span>
+              </span>
             </div>
+            {styleOpen && (
             <div className="style-presets" id="style-presets">
               {(() => {
                 const order = ['微信公众号', '小红书', '通用风格']
@@ -218,6 +231,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
                   ))
               })()}
             </div>
+            )}
             {selectedStyle && (
               <div className="hint style-tip">
                 已选择「{selectedStyle.name}」，将自动附加风格描述并切换到推荐尺寸{' '}
