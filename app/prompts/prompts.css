@@ -30,9 +30,20 @@
 }
 
 .prompts-search .input {
+  width: 100%;
+  box-sizing: border-box;
   padding: 14px 18px;
   font-size: 15px;
   border-radius: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.prompts-search .input:focus {
+  border-color: var(--primary);
 }
 
 /* 筛选 */
