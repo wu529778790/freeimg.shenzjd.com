@@ -82,7 +82,107 @@
   color: var(--primary);
 }
 
+/* 风格预设 */
+.style-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.style-label-row .hint {
+  margin-top: 0;
+}
+
+.style-group {
+  margin-bottom: 12px;
+}
+
+.style-group:last-child {
+  margin-bottom: 0;
+}
+
+.style-group-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.style-group-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  min-height: 62px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.style-option:hover {
+  border-color: var(--primary);
+}
+
+.style-option.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.style-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.style-option.active .style-name {
+  color: var(--primary);
+}
+
+.style-platform {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--border);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.style-option.active .style-platform {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.style-tip {
+  color: var(--primary);
+}
+
 /* 尺寸选择 */
+.size-group {
+  margin-bottom: 12px;
+}
+
+.size-group:last-child {
+  margin-bottom: 0;
+}
+
+.size-group-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 .size-options {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -93,8 +193,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 14px 8px;
+  min-height: 76px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -211,6 +313,10 @@
   }
 
   .size-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .style-group-items {
     grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { generateImage } from '../api'
 import { SIZE_OPTIONS, STORAGE_KEYS } from '../config'
+import { STYLE_PRESETS } from '../presets'
+import type { StylePreset } from '../presets'
 import type { HistoryItem, SizeOption } from '../types'
 import './Generator.css'
 
@@ -45,6 +47,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
     return () => window.removeEventListener('use-prompt', applyPendingPrompt)
   }, [])
   const [size, setSize] = useState<SizeOption>(SIZE_OPTIONS[0])
+  const [selectedStyle, setSelectedStyle] = useState<StylePreset | null>(null)
   const [steps, setSteps] = useState(9)
   const [status, setStatus] = useState<StatusType>('idle')
   const [statusMsg, setStatusMsg] = useState('')
@@ -63,6 +66,12 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
       return
     }
 
+    // 风格规格在前、用户内容在后（参考宝玉 skills 的做法：
+    // 详细风格指令会带跑模型，必须把用户内容放在 prompt 末尾并明确标记为主体）
+    const finalPrompt = selectedStyle
+      ? `${selectedStyle.stylePrompt}\n\n## 创作内容（图片的主体，务必严格以以下描述为准）\n${prompt.trim()}`
+      : prompt.trim()
+
     localStorage.setItem(STORAGE_KEYS.apiKey, apiKey.trim())
     setLoading(true)
     setResult(null)
@@ -71,7 +80,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
 
     try {
       const res = await generateImage(apiKey.trim(), {
-        prompt: prompt.trim(),
+        prompt: finalPrompt,
         size,
         steps
       })
@@ -83,7 +92,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         dataUrl: res.dataUrl,
         ext: res.ext,
-        prompt: prompt.trim(),
+        prompt: finalPrompt,
         sizeLabel: `${size.width} × ${size.height}`,
         createdAt: Date.now()
       })
@@ -98,6 +107,13 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 选择风格:再次点击取消选择,选中时联动切换推荐尺寸
+  const handleStyleSelect = (preset: StylePreset) => {
+    const isActive = selectedStyle?.id === preset.id
+    setSelectedStyle(isActive ? null : preset)
+    if (!isActive) setSize(preset.recommendedSize)
   }
 
   const handleDownload = () => {
@@ -159,21 +175,84 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
             ></textarea>
           </div>
 
+          {/* 风格预设（可选） */}
+          <div className="form-group">
+            <div className="style-label-row">
+              <label htmlFor="style-presets">风格预设（可选）</label>
+              <span className="hint">不选择则直接使用你输入的提示词生成</span>
+            </div>
+            <div className="style-presets" id="style-presets">
+              {(() => {
+                const order = ['微信公众号', '小红书', '通用风格']
+                const groups = new Map<string, typeof STYLE_PRESETS>()
+                for (const preset of STYLE_PRESETS) {
+                  if (!groups.has(preset.platform)) groups.set(preset.platform, [])
+                  groups.get(preset.platform)!.push(preset)
+                }
+                return order
+                  .filter((p) => groups.has(p))
+                  .map((platform) => (
+                    <div key={platform} className="style-group">
+                      <div className="style-group-label">{platform}</div>
+                      <div className="style-group-items">
+                        {groups.get(platform)!.map((preset) => {
+                          const active = selectedStyle?.id === preset.id
+                          return (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              className={`style-option ${active ? 'active' : ''}`}
+                              onClick={() => handleStyleSelect(preset)}
+                              title={preset.description}
+                            >
+                              <span className="style-name">{preset.name}</span>
+                              <span className="style-platform">{platform}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+            {selectedStyle && (
+              <div className="hint style-tip">
+                已选择「{selectedStyle.name}」，将自动附加风格描述并切换到推荐尺寸{' '}
+                {selectedStyle.recommendedSize.label}（再次点击可取消）
+              </div>
+            )}
+          </div>
+
           {/* 尺寸选择 */}
           <div className="form-group">
             <label>图片尺寸</label>
-            <div className="size-options">
-              {SIZE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.label}
-                  className={`size-option ${size.label === opt.label ? 'active' : ''}`}
-                  onClick={() => setSize(opt)}
-                >
-                  <span className="size-label">{opt.label}</span>
-                  <span className="size-desc">{opt.desc}</span>
-                </button>
-              ))}
-            </div>
+            {(() => {
+              // 按 group 分组渲染，保持数组原有顺序
+              const groups = new Map<string, SizeOption[]>()
+              for (const opt of SIZE_OPTIONS) {
+                const g = opt.group || '其他'
+                if (!groups.has(g)) groups.set(g, [])
+                groups.get(g)!.push(opt)
+              }
+              return Array.from(groups.entries()).map(([group, options]) => (
+                <div key={group} className="size-group">
+                  <div className="size-group-label">{group}</div>
+                  <div className="size-options">
+                    {options.map((opt) => (
+                      <button
+                        key={opt.label}
+                        className={`size-option ${size.label === opt.label ? 'active' : ''}`}
+                        onClick={() => setSize(opt)}
+                      >
+                        <span className="size-label">{opt.label}</span>
+                        <span className="size-desc">{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            })()}
+            <div className="hint">公众号封面建议生成后裁剪为 2.35:1（900×383）使用。</div>
           </div>
 
           {/* 步数调节 */}

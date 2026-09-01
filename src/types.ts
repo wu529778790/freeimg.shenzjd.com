@@ -4,6 +4,8 @@ export interface SizeOption {
   width: number
   height: number
   desc: string
+  // 分组名（用于在界面中分组展示）
+  group?: string
 }
 
 // 生成请求参数

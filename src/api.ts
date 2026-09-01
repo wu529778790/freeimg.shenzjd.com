@@ -30,7 +30,6 @@ export async function generateImage(
     body: JSON.stringify({
       model: MODEL,
       prompt,
-      size: `${size.width}x${size.height}`,
       width: size.width,
       height: size.height,
       num_inference_steps: steps

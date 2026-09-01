@@ -12,12 +12,15 @@ export const STORAGE_KEYS = {
   history: 'z_image_turbo_history'
 }
 
-// 支持的尺寸选项
+// 支持的尺寸选项（Gitee AI z-image-turbo 实际支持的 Fixed size 列表，自定义尺寸需为 8 的倍数）
 export const SIZE_OPTIONS: SizeOption[] = [
-  { label: '2K 方形', width: 2048, height: 2048, desc: '2048 × 2048' },
-  { label: '2K 横版', width: 2048, height: 1152, desc: '2048 × 1152' },
-  { label: '2K 竖版', width: 1152, height: 2048, desc: '1152 × 2048' },
-  { label: '1K 方形', width: 1024, height: 1024, desc: '1024 × 1024' }
+  { label: '1:1', width: 2048, height: 2048, desc: '2048 × 2048', group: '基础' },
+  { label: '4:3', width: 2048, height: 1536, desc: '2048 × 1536', group: '基础' },
+  { label: '3:4', width: 1536, height: 2048, desc: '1536 × 2048 · 小红书', group: '基础' },
+  { label: '3:2', width: 2048, height: 1360, desc: '2048 × 1360', group: '基础' },
+  { label: '2:3', width: 1360, height: 2048, desc: '1360 × 2048 · 小红书长图', group: '基础' },
+  { label: '16:9', width: 2048, height: 1152, desc: '2048 × 1152', group: '基础' },
+  { label: '9:16', width: 1152, height: 2048, desc: '1152 × 2048', group: '基础' }
 ]
 
 // 历史记录最大条数
