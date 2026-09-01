@@ -14,7 +14,7 @@ FROM nginx:alpine AS runtime
 WORKDIR /usr/share/nginx/html
 
 # 复制构建产物
-COPY --from=build /app/dist ./
+COPY --from=builder /app/dist ./
 
 # 自定义 nginx 配置：支持 SPA 路由回退 + gzip
 COPY nginx.conf /etc/nginx/conf.d/default.conf
