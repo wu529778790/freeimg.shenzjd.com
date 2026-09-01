@@ -85,18 +85,19 @@ jobs:
           script: |
             IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):latest"
             CONTAINER="${{ env.CONTAINER_NAME }}"
-            # 静态站点无需环境变量文件，直接部署
             sudo docker pull "$IMAGE"
             sudo docker stop "$CONTAINER" || true
             sudo docker rm "$CONTAINER" || true
             sudo docker run -d \
               --name "$CONTAINER" \
               --restart unless-stopped \
-              --memory=256m \
-              --memory-swap=384m \
+              --memory=512m \
+              --memory-swap=768m \
               --cpus=0.5 \
               --log-opt max-size=10m \
               --log-opt max-file=3 \
-              -p 6711:80 \
+              -p 6711:3000 \
+              -e TURSO_URL="${{ secrets.TURSO_URL }}" \
+              -e TURSO_AUTH_TOKEN="${{ secrets.TURSO_AUTH_TOKEN }}" \
               "$IMAGE"
             sudo docker image prune -f
