@@ -41,10 +41,15 @@ export default function GeneratorSection() {
     await clearHistory()
   }
 
+  const handleHistoryRemove = async (id: string) => {
+    setHistory((prev) => prev.filter((item) => item.id !== id))
+    await removeHistory(id)
+  }
+
   return (
     <>
       <Generator onHistoryAdd={handleHistoryAdd} />
-      <History items={history} onClear={handleHistoryClear} />
+      <History items={history} onClear={handleHistoryClear} onRemove={handleHistoryRemove} />
     </>
   )
 }

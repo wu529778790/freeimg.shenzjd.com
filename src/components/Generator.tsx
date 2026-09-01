@@ -126,8 +126,10 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
               <input
                 type={showKey ? 'text' : 'password'}
                 id="apiKey"
+                name="apiKey"
                 className="input"
                 placeholder="请输入你的 Gitee AI API Key"
+                autoComplete="new-password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
