@@ -1,42 +1,19 @@
-import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { usePrompts } from '../utils/usePrompts'
+'use client'
+
+import Link from 'next/link'
 import type { PromptItem } from '../types'
 import './HotPrompts.css'
 
 interface HotPromptsProps {
-  onUsePrompt: (prompt: string) => void
+  prompts: PromptItem[]
 }
 
-export default function HotPrompts({ onUsePrompt }: HotPromptsProps) {
-  const { data } = usePrompts()
-  const prompts = data?.prompts || []
-
-  // 精选热门提示词：优先 featured，否则从不同分类各取 1 条，保证多样性
-  const hotPrompts = useMemo(() => {
-    const featured = prompts.filter((p) => p.featured)
-    if (featured.length >= 8) return featured.slice(0, 8)
-
-    // 按分类分组，从每个分类取 1 条，直到凑满 8 条
-    const byCategory = new Map<string, PromptItem[]>()
-    for (const p of prompts) {
-      const key = p.category?.name || '其他'
-      if (!byCategory.has(key)) byCategory.set(key, [])
-      if (byCategory.get(key)!.length < 1) byCategory.get(key)!.push(p)
-    }
-    const result: PromptItem[] = []
-    const categories = Array.from(byCategory.values())
-    let i = 0
-    while (result.length < 8 && categories.length > 0) {
-      const cat = categories[i % categories.length]
-      if (cat.length > 0) {
-        result.push(cat.shift()!)
-      }
-      i++
-      if (i > 100) break
-    }
-    return result
-  }, [prompts])
+export default function HotPrompts({ prompts }: HotPromptsProps) {
+  // 使用提示词:写入 sessionStorage 并触发事件让 Generator 读取
+  const handleUsePrompt = (prompt: string) => {
+    sessionStorage.setItem('pending_prompt', prompt)
+    window.dispatchEvent(new Event('use-prompt'))
+  }
 
   return (
     <section className="hot-prompts" id="hot-prompts">
@@ -47,7 +24,7 @@ export default function HotPrompts({ onUsePrompt }: HotPromptsProps) {
         </div>
 
         <div className="hot-prompts-grid">
-          {hotPrompts.map((p) => (
+          {prompts.map((p) => (
             <div className="hot-prompt-card" key={p.id}>
               {p.media && (
                 <div className="hot-prompt-img">
@@ -59,7 +36,7 @@ export default function HotPrompts({ onUsePrompt }: HotPromptsProps) {
                 {p.category && <span className="hot-prompt-tag">{p.category.name}</span>}
                 <button
                   className="btn btn-primary hot-prompt-btn"
-                  onClick={() => onUsePrompt(p.translatedContent || p.content)}
+                  onClick={() => handleUsePrompt(p.translatedContent || p.content)}
                 >
                   ✨ 立即生成
                 </button>
@@ -69,7 +46,7 @@ export default function HotPrompts({ onUsePrompt }: HotPromptsProps) {
         </div>
 
         <div className="hot-prompts-more">
-          <Link to="/prompts" className="btn btn-ghost">
+          <Link href="/prompts" className="btn btn-ghost">
             查看全部提示词 →
           </Link>
         </div>

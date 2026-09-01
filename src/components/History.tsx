@@ -1,3 +1,5 @@
+'use client'
+
 import type { HistoryItem } from '../types'
 import './History.css'
 

@@ -1,4 +1,4 @@
-# 构建阶段：编译 Vite + React 静态资源
+# 构建阶段：编译 Next.js(SSR + API)
 FROM node:22-alpine AS builder
 WORKDIR /app
 
@@ -7,21 +7,26 @@ RUN npm ci
 
 COPY . .
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# 运行阶段：用 nginx 托管静态文件
-FROM nginx:alpine AS runtime
-WORKDIR /usr/share/nginx/html
+# 运行阶段：Next standalone 单进程服务(自带静态资源 + gzip)
+FROM node:22-alpine AS runner
+WORKDIR /app
 
-# 复制构建产物
-COPY --from=builder /app/dist ./
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 
-# 自定义 nginx 配置：支持 SPA 路由回退 + gzip
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# 拷贝 standalone 产物、静态资源与 public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
-EXPOSE 80
+EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+# 运行时需注入 TURSO_URL / TURSO_AUTH_TOKEN 环境变量
+CMD ["node", "server.js"]

@@ -4,6 +4,8 @@ node_modules
 # 构建产物
 dist
 dist-ssr
+.next
+out
 
 # 日志
 *.log
@@ -18,3 +20,6 @@ npm-debug.log*
 # 临时文件
 *.local
 .playwright-mcp
+
+# 本地数据(原始爬取备份,已导入 Turso 数据库)
+data/

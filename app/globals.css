@@ -1,0 +1,212 @@
+:root {
+  /* 深色主题（默认） */
+  --bg: #0b0f1a;
+  --bg-soft: #111827;
+  --bg-card: #1a2234;
+  --border: #2a3550;
+  --text: #e5e9f0;
+  --text-secondary: #9aa4b8;
+  --text-muted: #6b7688;
+  --primary: #4a7dff;
+  --primary-hover: #3565e0;
+  --primary-soft: rgba(74, 125, 255, 0.12);
+  --success: #52c41a;
+  --success-soft: rgba(82, 196, 26, 0.12);
+  --error: #ff4d4f;
+  --error-soft: rgba(255, 77, 79, 0.12);
+  --warning: #faad14;
+  --warning-soft: rgba(250, 173, 20, 0.12);
+  --btn-disabled: #3a4a6b;
+  --glow: rgba(74, 125, 255, 0.15);
+  --nav-bg: rgba(11, 15, 26, 0.85);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --max-width: 1200px;
+}
+
+/* 浅色主题（跟随系统） */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f7fa;
+    --bg-soft: #ffffff;
+    --bg-card: #ffffff;
+    --border: #e2e6ee;
+    --text: #1f2937;
+    --text-secondary: #4b5563;
+    --text-muted: #9ca3af;
+    --primary: #4a7dff;
+    --primary-hover: #3565e0;
+    --primary-soft: rgba(74, 125, 255, 0.1);
+    --success: #389e0d;
+    --success-soft: rgba(56, 158, 13, 0.1);
+    --error: #cf1322;
+    --error-soft: rgba(207, 19, 34, 0.08);
+    --warning: #d48806;
+    --warning-soft: rgba(212, 136, 6, 0.1);
+    --btn-disabled: #c0c8d8;
+    --glow: rgba(74, 125, 255, 0.1);
+    --nav-bg: rgba(255, 255, 255, 0.85);
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 背景光晕 */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1200px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, var(--glow), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+/* 通用容器 */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 通用按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: var(--btn-disabled);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #3f9e10;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease both;
+}

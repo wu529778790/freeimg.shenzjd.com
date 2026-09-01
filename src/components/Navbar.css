@@ -47,6 +47,10 @@
   color: var(--text);
 }
 
+.navbar-links a.active {
+  color: var(--primary);
+}
+
 .navbar-cta {
   padding: 8px 20px;
   background: var(--primary);

@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import { generateImage } from '../api'
 import { SIZE_OPTIONS, STORAGE_KEYS } from '../config'
@@ -11,9 +13,15 @@ interface GeneratorProps {
 type StatusType = 'idle' | 'loading' | 'success' | 'error'
 
 export default function Generator({ onHistoryAdd }: GeneratorProps) {
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEYS.apiKey) || '')
+  // localStorage 仅在客户端可用，SSR 时不能初始化读取
+  const [apiKey, setApiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [prompt, setPrompt] = useState('')
+
+  // 挂载后从本地存储恢复 API Key（SSR 安全）
+  useEffect(() => {
+    setApiKey(localStorage.getItem(STORAGE_KEYS.apiKey) || '')
+  }, [])
 
   // 从提示词库跳转过来时，读取待填入的提示词
   useEffect(() => {

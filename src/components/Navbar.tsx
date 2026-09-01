@@ -1,5 +1,8 @@
+'use client'
+
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import './Navbar.css'
 
 const NAV_LINKS = [
@@ -11,15 +14,15 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
-  const location = useLocation()
-  const isHome = location.pathname === '/'
+  const pathname = usePathname()
+  const isHome = pathname === '/'
 
   const handleClick = () => setOpen(false)
 
   return (
     <header className="navbar">
       <div className="container navbar-inner">
-        <Link to="/" className="navbar-logo" onClick={handleClick}>
+        <Link href="/" className="navbar-logo" onClick={handleClick}>
           <span className="logo-icon">🎨</span>
           <span className="logo-text">FreeImg</span>
         </Link>
@@ -27,7 +30,12 @@ export default function Navbar() {
         <nav className={`navbar-links ${open ? 'open' : ''}`}>
           {NAV_LINKS.map((link) =>
             link.route ? (
-              <Link key={link.href} to={link.href} onClick={handleClick}>
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={handleClick}
+                className={pathname === link.href ? 'active' : ''}
+              >
                 {link.label}
               </Link>
             ) : (
@@ -40,7 +48,7 @@ export default function Navbar() {
               </a>
             )
           )}
-          <Link to="/" className="navbar-cta" onClick={handleClick}>
+          <Link href="/" className="navbar-cta" onClick={handleClick}>
             立即使用
           </Link>
           <a
