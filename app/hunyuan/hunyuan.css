@@ -1,0 +1,63 @@
+/* /hunyuan 页面专属布局(卡片内样式见 src/components/HunyuanStudio.css) */
+
+.hunyuan-page {
+  padding-bottom: 48px;
+}
+
+/* 页头 */
+.hunyuan-hero {
+  padding: 56px 0 8px;
+  text-align: center;
+}
+
+.hunyuan-title {
+  font-size: 34px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hunyuan-badge {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid currentColor;
+}
+
+.hunyuan-subtitle {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+/* 热门提示词 */
+.hunyuan-hot {
+  margin-top: 48px;
+}
+
+.hunyuan-hot-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.hunyuan-hot-header h2 {
+  font-size: 22px;
+}
+
+.hunyuan-hot-more {
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .hunyuan-title {
+    font-size: 26px;
+  }
+}

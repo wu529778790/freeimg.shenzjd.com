@@ -79,6 +79,20 @@ npm start
 - [TypeScript](https://www.typescriptlang.org/) - 类型系统
 - [Turso](https://turso.tech/) - 提示词库数据库（@libsql/client）
 - [Gitee AI](https://ai.gitee.com/) - 图片生成 API（Z-Image-Turbo）
+- [腾讯云开发 CloudBase](https://docs.cloudbase.net/ai/) - 混元生图 / 提示词助手（@cloudbase/node-sdk）
+
+## 🤖 混元生图（/hunyuan）
+
+独立页面 `/hunyuan`，基于腾讯混元 3.0 模型（微信云开发额度），无需 API Key：
+
+- 文生图（4 档固定尺寸）、图生图（垫图 ≤10MB，支持 Ctrl+V 粘贴）、AI 提示词润色/翻译（hy3 流式输出）
+- **需微信登录**（wx-auth-sdk + UserAvatar 头像组件），未登录点「生成」自动弹窗；管理员由登录中心 userinfo 接口下发 `isAdmin`，业务侧零配置
+- 配额（Turso `ai_quota` 表计数）：普通用户每日 10 张（`TCB_USER_DAILY_IMAGE_LIMIT`），管理员不限量，全局每日兜底 500 张（`TCB_GLOBAL_DAILY_IMAGE_LIMIT`）
+- 超过 500 字的提示词生成时自动用混元精简到 500 字内（只去重复、保留内容）
+- 图片默认不带"AI生成"水印（`TCB_FOOTNOTE` 可定制右下角水印文字，默认空格=无水印）
+- 服务端环境变量：`TCB_ENV_ID` / `TCB_SECRET_ID` / `TCB_SECRET_KEY`、`WX_AUTH_API_BASE`（默认官方服务）
+- 接口：`POST /api/ai/t2i`、`POST /api/ai/i2i`（未登录返回 401 + needAuth）、`POST /api/ai/polish`（流式，无需登录）
+- 辅助脚本：`node --env-file=.env.local scripts/tcb-list-envs.mjs` 查环境 ID，`scripts/tcb-test-*.mjs` 验证模型连通性
 
 ## 🚢 部署
 

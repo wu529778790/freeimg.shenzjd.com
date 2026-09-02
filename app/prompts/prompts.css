@@ -233,6 +233,13 @@
   flex: 1;
   padding: 9px 12px;
   font-size: 13px;
+  white-space: nowrap;
+}
+
+/* 复制按钮固定窄宽,让位给两个生成按钮 */
+.prompt-btn-copy {
+  flex: 0 0 48px;
+  padding: 9px 0;
 }
 
 /* 空状态 */

@@ -288,7 +288,7 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
             <div className="hint">步数越高细节越丰富，但生成时间越长。推荐 9。</div>
           </div>
 
-          {/* 生成按钮 */}
+          {/* 生成按钮(加载中作为唯一进度指示,不再重复显示状态框) */}
           <button
             className="btn btn-primary generate-btn"
             onClick={handleGenerate}
@@ -297,19 +297,19 @@ export default function Generator({ onHistoryAdd }: GeneratorProps) {
             {loading ? (
               <>
                 <span className="spinner"></span>
-                正在生成…
+                正在生成…（2K 大图约 10~60 秒）
               </>
             ) : (
               <>✨ 生成图片</>
             )}
           </button>
 
-          {/* 状态提示 */}
-          {status !== 'idle' && (
-            <div className={`status status-${status}`}>
-              {status === 'loading' && <span className="spinner"></span>}
-              {statusMsg}
-            </div>
+          {/* 状态提示(仅成功/失败时展示) */}
+          {status === 'success' && (
+            <div className="status status-success">{statusMsg}</div>
+          )}
+          {status === 'error' && (
+            <div className="status status-error">{statusMsg}</div>
           )}
 
           {/* 结果展示 */}

@@ -103,7 +103,7 @@ export default async function PromptsPage({ searchParams }: PageProps) {
         {result.list.length === 0 ? (
           <div className="prompts-empty">没有找到匹配的提示词，换个关键词试试</div>
         ) : (
-          <PromptCards prompts={result.list} />
+          <PromptCards prompts={result.list} useTarget="/hunyuan" />
         )}
 
         {/* 分页 */}

@@ -1,0 +1,418 @@
+/* 混元生图工作台(独立于首页 Generator 的样式,复用 globals.css 的变量与 .btn/.container) */
+
+.hunyuan-studio {
+  padding: 48px 0 24px;
+}
+
+.hunyuan-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow);
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* 模式切换行 */
+.hy-mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.hy-mode-tab {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.hy-mode-tab.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.hy-quota-hint {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* 表单组 */
+.hy-form-group {
+  margin-bottom: 22px;
+}
+
+.hy-form-group > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.hy-textarea {
+  width: 100%;
+  min-height: 130px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.hy-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.hy-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.hy-count.over {
+  color: var(--error);
+}
+
+.hy-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* 提示词助手 */
+.hy-assistant-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.hy-assist-btn {
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.hy-assist-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.hy-assist-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.hy-assist-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.hy-assistant-output {
+  margin-top: 12px;
+  background: var(--primary-soft);
+  border: 1px dashed var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.hy-assistant-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hy-caret {
+  animation: hy-blink 0.8s infinite;
+  color: var(--primary);
+}
+
+@keyframes hy-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.hy-assistant-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* 垫图上传 */
+.hy-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 140px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.hy-upload-zone:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.hy-upload-zone input[type='file'] {
+  display: none;
+}
+
+.hy-upload-icon {
+  font-size: 28px;
+}
+
+.hy-ref-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hy-ref-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.hy-ref-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.hy-ref-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 风格预设 */
+.hy-style-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.hy-style-toggle label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hy-style-toggle .hy-hint {
+  margin: 0 0 0 auto;
+}
+
+.hy-arrow {
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+.hy-style-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hy-style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.hy-style-option.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.hy-style-name {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.hy-style-platform {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 尺寸选择 */
+.hy-size-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hy-size-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.hy-size-option.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.hy-size-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.hy-size-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 智能改写开关 */
+.hy-checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 400 !important;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hy-checkbox-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+/* 生成按钮 */
+.hy-generate-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* 状态 */
+.hy-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.hy-status-loading {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.hy-status-success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.hy-status-error {
+  background: var(--error-soft);
+  color: var(--error);
+  word-break: break-all;
+}
+
+.hy-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: hy-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes hy-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 结果 */
+.hy-result {
+  text-align: center;
+}
+
+.hy-result-img-wrap img {
+  max-width: 100%;
+  max-height: 640px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.hy-download-btn {
+  margin-top: 16px;
+  padding: 10px 24px;
+}
+
+@media (max-width: 640px) {
+  .hunyuan-card {
+    padding: 20px;
+  }
+
+  .hy-quota-hint {
+    margin-left: 0;
+    width: 100%;
+  }
+}

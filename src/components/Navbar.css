@@ -64,16 +64,10 @@
   background: var(--primary-hover);
 }
 
-.navbar-github {
+.navbar-avatar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: color 0.2s;
-}
-
-.navbar-github:hover {
-  color: var(--text);
+  margin-left: -6px;
 }
 
 .navbar-toggle {

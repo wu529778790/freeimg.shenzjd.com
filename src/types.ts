@@ -34,6 +34,8 @@ export interface HistoryItem {
   prompt: string
   sizeLabel: string
   createdAt: number
+  // 生成渠道标识（'gitee' | 'hunyuan'），旧记录无此字段
+  provider?: string
 }
 
 // 提示词分类

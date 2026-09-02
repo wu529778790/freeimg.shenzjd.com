@@ -1,0 +1,37 @@
+/* 首页左侧章节导航(仅宽屏显示,避免与 1200px 容器重叠) */
+.section-nav {
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 50;
+}
+
+@media (min-width: 1410px) {
+  .section-nav {
+    display: flex;
+  }
+}
+
+.section-nav a {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.section-nav a:hover {
+  color: var(--text);
+}
+
+.section-nav a.active {
+  color: var(--primary);
+  border-left-color: var(--primary);
+  font-weight: 600;
+}
