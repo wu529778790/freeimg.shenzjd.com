@@ -121,8 +121,13 @@
   color: var(--text-muted);
 }
 
-.history-download {
-  width: 100%;
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.history-actions .btn {
+  flex: 1;
   padding: 8px;
   font-size: 13px;
 }

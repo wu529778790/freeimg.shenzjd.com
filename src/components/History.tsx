@@ -36,6 +36,12 @@ export default function History({ items, onClear, onRemove }: HistoryProps) {
     document.body.removeChild(a)
   }
 
+  // 重新生成:不跳路由,始终回填到当前页的生成器并锚点滑到生成区
+  const handleRegenerate = (item: HistoryItem) => {
+    sessionStorage.setItem('pending_prompt', item.prompt)
+    window.dispatchEvent(new Event('use-prompt'))
+  }
+
   const handleConfirm = () => {
     if (pendingConfirm?.type === 'clear') {
       onClear()
@@ -86,12 +92,21 @@ export default function History({ items, onClear, onRemove }: HistoryProps) {
                       {new Date(item.createdAt).toLocaleString('zh-CN')}
                     </span>
                   </div>
-                  <button
-                    className="btn btn-ghost history-download"
-                    onClick={() => handleDownload(item)}
-                  >
-                    ⬇ 下载
-                  </button>
+                  <div className="history-actions">
+                    <button
+                      className="btn btn-ghost history-regenerate"
+                      onClick={() => handleRegenerate(item)}
+                      title="把提示词回填到生成器,调整后再生成"
+                    >
+                      🔁 重新生成
+                    </button>
+                    <button
+                      className="btn btn-ghost history-download"
+                      onClick={() => handleDownload(item)}
+                    >
+                      ⬇ 下载
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
