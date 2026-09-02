@@ -64,6 +64,10 @@
   letter-spacing: 0;
 }
 
+.nav-badge-unlimited {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
 .navbar-cta {
   padding: 8px 20px;
   background: var(--primary);

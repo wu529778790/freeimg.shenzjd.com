@@ -40,10 +40,10 @@ export default function Navbar() {
 
   const handleClick = () => setOpen(false)
 
-  const LINKS: { label: string; href: string; active: boolean; badge?: string }[] = [
-    // 免费徽标只挂在第二个菜单上:默认进来就是首页(Z-Image 生图),人人可见,无需标注
-    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome },
-    { label: '混元生图', href: '/hunyuan', active: pathname === '/hunyuan', badge: '免费' },
+  const LINKS: { label: string; href: string; active: boolean; badge?: string; badgeType?: 'unlimited' | 'free' }[] = [
+    // 第一个菜单挂「无限制」徽标,第二个菜单挂「免费」徽标
+    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome, badge: '无限制', badgeType: 'unlimited' },
+    { label: '混元生图', href: '/hunyuan', active: pathname === '/hunyuan', badge: '免费', badgeType: 'free' },
     { label: '提示词库', href: '/prompts', active: pathname === '/prompts' }
   ]
 
@@ -65,7 +65,11 @@ export default function Navbar() {
                 className={link.active ? 'active' : ''}
               >
                 {link.label}
-                {link.badge && <sup className="nav-badge">{link.badge}</sup>}
+                {link.badge && (
+                  <sup className={`nav-badge ${link.badgeType === 'unlimited' ? 'nav-badge-unlimited' : ''}`}>
+                    {link.badge}
+                  </sup>
+                )}
               </Link>
             ) : (
               <a
@@ -75,7 +79,11 @@ export default function Navbar() {
                 className={link.active ? 'active' : ''}
               >
                 {link.label}
-                {link.badge && <sup className="nav-badge">{link.badge}</sup>}
+                {link.badge && (
+                  <sup className={`nav-badge ${link.badgeType === 'unlimited' ? 'nav-badge-unlimited' : ''}`}>
+                    {link.badge}
+                  </sup>
+                )}
               </a>
             )
           )}
