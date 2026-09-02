@@ -40,8 +40,8 @@ export default function Navbar() {
 
   const handleClick = () => setOpen(false)
 
-  const LINKS = [
-    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome },
+  const LINKS: { label: string; href: string; active: boolean; badge?: string }[] = [
+    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome, badge: '免费' },
     { label: '混元生图', href: '/hunyuan', active: pathname === '/hunyuan' },
     { label: '提示词库', href: '/prompts', active: pathname === '/prompts' }
   ]
@@ -64,6 +64,7 @@ export default function Navbar() {
                 className={link.active ? 'active' : ''}
               >
                 {link.label}
+                {link.badge && <sup className="nav-badge">{link.badge}</sup>}
               </Link>
             ) : (
               <a
@@ -73,6 +74,7 @@ export default function Navbar() {
                 className={link.active ? 'active' : ''}
               >
                 {link.label}
+                {link.badge && <sup className="nav-badge">{link.badge}</sup>}
               </a>
             )
           )}

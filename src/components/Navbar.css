@@ -51,6 +51,19 @@
   color: var(--primary);
 }
 
+.nav-badge {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  padding: 2px 5px;
+  border-radius: 6px;
+  vertical-align: super;
+  letter-spacing: 0;
+}
+
 .navbar-cta {
   padding: 8px 20px;
   background: var(--primary);
