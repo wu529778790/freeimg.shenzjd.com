@@ -48,23 +48,33 @@ async function consume(
 }
 
 /**
- * 按登录用户扣减生图额度;isAdmin 时不限不记
+ * 按登录用户扣减生图额度;isAdmin 时不限但不豁免记账(与云开发控制台用量口径对齐)
  */
 export async function consumeUserQuota(
   openid: string,
   isAdmin: boolean,
   cost = 1
 ): Promise<QuotaResult> {
-  if (isAdmin) {
-    return { ok: true, remaining: -1, limit: -1, scope: 'user' }
-  }
-
   const db = getDb()
   const day = new Date().toISOString().slice(0, 10)
 
   await db.execute(
     'CREATE TABLE IF NOT EXISTS ai_quota (ip TEXT NOT NULL, day TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (ip, day))'
   )
+
+  if (isAdmin) {
+    // 管理员不限量,但每张都记一笔,保证管理员视图的"已使用"与平台真实调用量同口径
+    try {
+      await db.execute({
+        sql: `INSERT INTO ai_quota (ip, day, used) VALUES (?, ?, ?)
+              ON CONFLICT (ip, day) DO UPDATE SET used = used + ?`,
+        args: [`admin:${openid}`, day, cost, cost]
+      })
+    } catch (err) {
+      console.error('管理员用量记账失败:', err)
+    }
+    return { ok: true, remaining: -1, limit: -1, scope: 'user' }
+  }
 
   // 先扣全局池,再扣个人额度(个人超额时全局已扣的 1 次属于保守多计,可接受)
   const globalRow = await consume('__global__', day, cost, GLOBAL_DAILY_IMAGE_LIMIT)
