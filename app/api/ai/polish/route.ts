@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getChatModel, HY_CHAT_MODEL } from '@/lib/tcb'
+import { getChatModel, passthroughTcbError, HY_CHAT_MODEL } from '@/lib/tcb'
 
 /**
  * POST /api/ai/polish  提示词助手(混元 hy3 流式输出)
@@ -60,10 +60,9 @@ export async function POST(request: NextRequest) {
     textStream = res.textStream
   } catch (err) {
     console.error('提示词助手调用失败:', err)
-    return NextResponse.json(
-      { success: false, message: '助手暂时不可用（模型限流或额度异常），请稍后再试' },
-      { status: 502 }
-    )
+    // 上游怎么返回就怎么透出:状态码、错误正文均不加工
+    const { status, payload } = passthroughTcbError(err)
+    return NextResponse.json(payload, { status })
   }
 
   const encoder = new TextEncoder()

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateImageWithRetry, describeTcbError, HY_I2I_MODEL, HY_FOOTNOTE } from '@/lib/tcb'
+import { generateImageWithRetry, passthroughTcbError, HY_I2I_MODEL, HY_FOOTNOTE } from '@/lib/tcb'
 import { consumeUserQuota } from '@/lib/quota'
 import { getWxUser } from '@/lib/wxauth'
 
@@ -104,9 +104,8 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error('混元图生图失败:', err)
-    return NextResponse.json(
-      { success: false, message: `生成失败: ${describeTcbError(err)}` },
-      { status: 502 }
-    )
+    // 上游怎么返回就怎么透出:状态码、错误正文均不加工
+    const { status, payload } = passthroughTcbError(err)
+    return NextResponse.json(payload, { status })
   }
 }

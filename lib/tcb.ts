@@ -57,15 +57,21 @@ type ImageGenParams = Parameters<ReturnType<typeof getImageModel>['generateImage
 type ImageGenResult = Awaited<ReturnType<ReturnType<typeof getImageModel>['generateImage']>>
 
 /**
- * 生图调用包装:偶发 422/429/5xx(上游排队或审核抖动)时隔 2 秒自动重试一次
+ * 生图调用包装:只对限流(429)和服务端抖动(5xx)隔 2 秒重试一次
+ *
+ * 422 不重试:它是上游对请求本身的拒绝(多为提示词触发内容审核),
+ * 同样的请求重发必然再失败,只会白白多等 2 秒并多消耗一次上游调用。
+ *
+ * 注意:状态码取 TcbError.code,不要取 err.response —— TcbError 只有
+ * code / message / requestId 三个字段,err.response 恒为 undefined。
  */
 export async function generateImageWithRetry(params: HunyuanImageParams): Promise<ImageGenResult> {
   const call = () => getImageModel().generateImage(params as ImageGenParams)
   try {
     return await call()
   } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response?.status
-    if (status === 422 || status === 429 || (status !== undefined && status >= 500)) {
+    const status = Number((err as { code?: string | number })?.code)
+    if (status === 429 || (status >= 500 && status <= 599)) {
       await new Promise((resolve) => setTimeout(resolve, 2000))
       return await call()
     }
@@ -74,22 +80,56 @@ export async function generateImageWithRetry(params: HunyuanImageParams): Promis
 }
 
 /**
- * 提取上游错误的具体信息(状态码 + 响应体 message),用于透传给前端诊断
+ * 上游错误原样透传,不做任何文案包装
+ *
+ * CloudBase SDK 抛出的 TcbError 只有三个字段(code / message / requestId):
+ * - code 就是上游 HTTP 状态码(如 422、429),非状态码的业务错误码会兜底成 502
+ * - message 是上游响应体原文,或上游响应体里的 message 字段
+ * 因此直接:状态码用上游的、正文用上游的,额外补上 success/requestId 供前端判定。
  */
-export function describeTcbError(err: unknown): string {
-  const e = err as { response?: { status?: number; data?: unknown }; message?: string }
-  const status = e?.response?.status
-  let detail = ''
-  const data = e?.response?.data
-  if (typeof data === 'string') {
-    detail = data.slice(0, 200)
-  } else if (data && typeof data === 'object') {
-    const obj = data as Record<string, unknown>
-    detail = String(obj.message || obj.msg || obj.Message || JSON.stringify(data)).slice(0, 200)
+export function passthroughTcbError(err: unknown): {
+  status: number
+  payload: Record<string, unknown>
+} {
+  const e = err as { code?: string | number; message?: string; requestId?: string }
+
+  // TcbError.code 是字符串形式的 HTTP 状态码;不是合法状态码时按 502 兜底
+  const code = Number(e?.code)
+  const status = Number.isInteger(code) && code >= 400 && code <= 599 ? code : 502
+
+  const rawMessage = e?.message || String(err)
+
+  // 上游有时把整个错误响应体塞进 message,能解析成 JSON 就原样展开透传
+  let upstream: Record<string, unknown> | null = null
+  try {
+    const parsed = JSON.parse(rawMessage)
+    if (parsed && typeof parsed === 'object') upstream = parsed as Record<string, unknown>
+  } catch {
+    upstream = null
   }
-  const prefix = status ? `上游错误 ${status}` : ''
-  const body = detail || e?.message || String(err)
-  return prefix ? `${prefix}: ${body}` : body
+
+  // 只做字段提取,不改写文案:优先 message,其次 OpenAI 风格的 error.message
+  const pickMessage = (o: Record<string, unknown> | null): string | null => {
+    if (!o) return null
+    if (typeof o.message === 'string') return o.message
+    const nested = o.error
+    if (nested && typeof nested === 'object') {
+      const m = (nested as Record<string, unknown>).message
+      if (typeof m === 'string') return m
+    }
+    return null
+  }
+
+  return {
+    status,
+    payload: {
+      ...(upstream || {}),
+      success: false,
+      message: pickMessage(upstream) || rawMessage,
+      code: upstream?.code ?? e?.code,
+      requestId: upstream?.requestId ?? (e?.requestId || '')
+    }
+  }
 }
 
 /**
