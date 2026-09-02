@@ -496,24 +496,12 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
                 )}
                 {envMsg && <div className={`hy-byok-msg hy-byok-${envMsg.type}`}>{envMsg.text}</div>}
                 <div className="hy-hint">
-                  密钥仅保存在本浏览器 localStorage；每次生成会把 SecretId / SecretKey / 环境发给本站服务器
-                  代调用你的云开发环境，服务端不落库、不打日志。额度来自你自己环境的「小程序成长计划」
-                  资源包（10 亿 Token + 10 万张图）。获取密钥：
-                  <a
-                    href="https://console.cloud.tencent.com/cam/capi"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    腾讯云 API 密钥
-                  </a>{' '}
-                  · 领取资源包：
-                  <a
-                    href="https://developers.weixin.qq.com/minigame/dev/wxcloud/billing/ai-inspire-plan.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    小程序成长计划
+                  密钥仅保存在本浏览器 localStorage；额度来自你自己环境的「小程序成长计划」资源包（10 亿
+                  Token + 10 万张图）。不知道怎么领取资源包、获取密钥？去看下方的{' '}
+                  <a href="#tutorial" className="hy-hint-link">
+                    使用教程
                   </a>
+                  ，图文步骤都在里面。
                 </div>
               </div>
             )}

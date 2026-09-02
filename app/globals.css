@@ -111,6 +111,12 @@ textarea {
   padding: 0 24px;
 }
 
+/* 通用区块标题(在线生成 / 使用教程 等):统一居中 */
+.section-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
 /* 通用按钮 */
 .btn {
   display: inline-flex;

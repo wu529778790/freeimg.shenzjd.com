@@ -25,7 +25,7 @@ export default function Tutorial() {
       <div className="container">
         <div className="section-header">
           <h2>使用教程</h2>
-          <p>四步获取免费访问令牌，开始你的 AI 创作</p>
+          <p>三步获取免费访问令牌，开始你的 AI 创作</p>
         </div>
 
         <div className="tutorial-steps">

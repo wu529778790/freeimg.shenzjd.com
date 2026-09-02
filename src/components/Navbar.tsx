@@ -41,8 +41,9 @@ export default function Navbar() {
   const handleClick = () => setOpen(false)
 
   const LINKS: { label: string; href: string; active: boolean; badge?: string }[] = [
-    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome, badge: '免费' },
-    { label: '混元生图', href: '/hunyuan', active: pathname === '/hunyuan' },
+    // 免费徽标只挂在第二个菜单上:默认进来就是首页(Z-Image 生图),人人可见,无需标注
+    { label: 'Z-Image 生图', href: isHome ? '#generator' : '/', active: isHome },
+    { label: '混元生图', href: '/hunyuan', active: pathname === '/hunyuan', badge: '免费' },
     { label: '提示词库', href: '/prompts', active: pathname === '/prompts' }
   ]
 

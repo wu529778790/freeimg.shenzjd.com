@@ -551,6 +551,15 @@
   color: var(--error);
 }
 
+.hy-byok .hy-hint a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.hy-byok .hy-hint a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .hy-byok-input,
   .hy-byok-select {

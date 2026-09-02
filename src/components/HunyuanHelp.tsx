@@ -68,8 +68,8 @@ export default function HunyuanHelp() {
         <div className="tutorial-tip">
           <span className="tip-icon">💡</span>
           <p>
-            密钥仅保存在你自己的浏览器 localStorage；生成请求会把它发给本站服务器代调用你的云开发环境，
-            服务端不落库、不打日志。额度来自你自己环境的「小程序成长计划」资源包，请勿把密钥分享给他人。
+            密钥仅保存在你自己的浏览器 localStorage；额度来自你自己环境的「小程序成长计划」资源包，
+            请勿把密钥分享给他人。
           </p>
         </div>
       </div>
