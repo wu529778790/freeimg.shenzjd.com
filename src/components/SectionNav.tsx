@@ -3,15 +3,19 @@
 import { useEffect, useState } from 'react'
 import './SectionNav.css'
 
-// 首页左侧锚点导航(宽屏显示,滚动时高亮当前章节)
-const SECTIONS = [
+// 左侧锚点导航(宽屏显示,滚动时高亮当前章节)。sections 可传入各页自定义章节,缺省为首页章节。
+export interface SectionItem {
+  id: string
+  label: string
+}
+
+const DEFAULT_SECTIONS: SectionItem[] = [
   { id: 'generator', label: '在线生成' },
   { id: 'history', label: '生成历史' },
-  { id: 'features', label: '功能特性' },
   { id: 'tutorial', label: '使用教程' }
 ]
 
-export default function SectionNav() {
+export default function SectionNav({ sections = DEFAULT_SECTIONS }: { sections?: SectionItem[] }) {
   const [active, setActive] = useState('')
 
   useEffect(() => {
@@ -20,7 +24,7 @@ export default function SectionNav() {
     const onScroll = () => {
       const probe = window.scrollY + window.innerHeight * 0.35
       let current = ''
-      for (const { id } of SECTIONS) {
+      for (const { id } of sections) {
         const el = document.getElementById(id)
         if (!el) continue
         const top = el.getBoundingClientRect().top + window.scrollY
@@ -44,7 +48,7 @@ export default function SectionNav() {
 
   return (
     <nav className="section-nav" aria-label="页面章节">
-      {SECTIONS.map(({ id, label }) => (
+      {sections.map(({ id, label }) => (
         <a
           key={id}
           href={`#${id}`}

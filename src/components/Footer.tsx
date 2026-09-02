@@ -12,7 +12,6 @@ export default function Footer() {
           基于 Gitee AI 的免费 2K 图片生成工具，每天 100 张免费额度。
         </p>
         <div className="footer-links">
-          <a href="#features">功能特性</a>
           <a href="#generator">在线生成</a>
           <a href="#tutorial">使用教程</a>
         </div>
