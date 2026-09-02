@@ -10,7 +10,8 @@ import { getWxUser } from '@/lib/wxauth'
  * 返回: { success, dataUrl, remaining }
  */
 
-const PROMPT_MAX = 500
+// 混元 3.0 官方上限 8192 字符,CloudBase 网关实测 8192 可过;取 4000 兼顾英文长提示词与请求体体积
+const PROMPT_MAX = 4000
 // 垫图限制 10MB(文档),base64 会膨胀约 1/3,按 7.5MB 原始体积限制
 const IMAGE_MAX_BYTES = 7.5 * 1024 * 1024
 

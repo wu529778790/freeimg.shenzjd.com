@@ -9,7 +9,8 @@ import { getWxUser } from '@/lib/wxauth'
  * 返回: { success, dataUrl, revisedPrompt, remaining }
  */
 
-const PROMPT_MAX = 500
+// 混元 3.0 官方上限 8192 字符,CloudBase 网关实测 8192 可过;取 4000 兼顾英文长提示词与请求体体积
+const PROMPT_MAX = 4000
 
 export async function POST(request: NextRequest) {
   let body: { prompt?: string; size?: string; revise?: boolean }

@@ -129,6 +129,24 @@
   color: var(--text-muted);
 }
 
+/* 提示词超出 500 字上限时的常驻警告(点击生成会自动 AI 精简) */
+.hy-over-limit-hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.hy-assistant-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
 .hy-assistant-output {
   margin-top: 12px;
   background: var(--primary-soft);

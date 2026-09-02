@@ -38,7 +38,7 @@ const HY_SIZE_OPTIONS = [
   { label: '4:1', size: '2048x512', desc: '2048 × 512 · 公众号封面' }
 ]
 
-const PROMPT_MAX = 500
+const PROMPT_MAX = 4000
 
 export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
   const [mode, setMode] = useState<Mode>('t2i')
@@ -96,18 +96,20 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     return true
   }
 
-  // 从提示词库/热门提示词跳转过来时,读取待填入的提示词
+  // 从提示词库/历史记录「重新生成」过来时,读取待填入的提示词(挂载读取 + 同页事件监听)
   useEffect(() => {
-    const pending = sessionStorage.getItem('pending_prompt')
-    if (pending) {
-      setPrompt(pending)
-      sessionStorage.removeItem('pending_prompt')
+    const applyPendingPrompt = () => {
+      const pending = sessionStorage.getItem('pending_prompt')
+      if (pending) {
+        setPrompt(pending)
+        sessionStorage.removeItem('pending_prompt')
+        document.getElementById('generator')?.scrollIntoView({ behavior: 'smooth' })
+      }
     }
+    applyPendingPrompt()
+    window.addEventListener('use-prompt', applyPendingPrompt)
+    return () => window.removeEventListener('use-prompt', applyPendingPrompt)
   }, [])
-
-  const finalPrompt = selectedStyle
-    ? `${prompt.trim()}\n\n${selectedStyle.stylePrompt}`
-    : prompt.trim()
 
   // 选择风格:再次点击取消选择
   const handleStyleSelect = (preset: StylePreset) => {
@@ -219,8 +221,9 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     }
   }
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
+  const handleGenerate = async (overridePrompt?: string) => {
+    const basePrompt = (overridePrompt ?? prompt).trim()
+    if (!basePrompt) {
       setStatus('error')
       setStatusMsg('请先填写提示词')
       return
@@ -239,25 +242,38 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     setStatusMsg('混元生成中，通常需要 10~40 秒，请耐心等待…')
 
     try {
-      // 提示词超过模型 500 字上限时,先自动用混元精简再生成
-      let effectivePrompt = finalPrompt
+      // 提示词超过上限时,先自动用混元精简再生成;精简结果可能仍超限,最多再精简一轮
+      let effectivePrompt = selectedStyle
+        ? `${basePrompt}\n\n${selectedStyle.stylePrompt}`
+        : basePrompt
       if (effectivePrompt.length > PROMPT_MAX) {
-        setStatusMsg(`提示词 ${effectivePrompt.length} 字超出 500 上限，正在 AI 自动精简…`)
         const controller = new AbortController()
         assistantAbort.current = controller
         setAssistantBusy(true)
         setAssistantMode('condense')
         setAssistantText('')
         try {
-          const condensed = (await streamPolish(effectivePrompt, 'condense', controller.signal)).trim()
-          if (!condensed) throw new Error('自动精简失败，请手动缩短提示词后重试')
-          effectivePrompt = condensed
+          for (let round = 0; effectivePrompt.length > PROMPT_MAX && round < 2; round++) {
+            setStatusMsg(
+              round === 0
+                ? `提示词 ${effectivePrompt.length} 字超出 ${PROMPT_MAX} 上限，正在 AI 自动精简…`
+                : `精简后仍 ${effectivePrompt.length} 字，正在再次精简…`
+            )
+            const condensed = (await streamPolish(effectivePrompt, 'condense', controller.signal)).trim()
+            if (!condensed) throw new Error('自动精简失败，请手动缩短提示词后重试')
+            effectivePrompt = condensed
+          }
         } catch (err) {
           if ((err as Error).name === 'AbortError') throw new Error('已取消')
           throw err
         } finally {
           setAssistantBusy(false)
           assistantAbort.current = null
+        }
+        if (effectivePrompt.length > PROMPT_MAX) {
+          throw new Error(
+            `自动精简两轮后仍超出 ${PROMPT_MAX} 字上限（当前 ${effectivePrompt.length} 字），请手动缩短提示词后重试`
+          )
         }
       }
 
@@ -315,12 +331,14 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     document.body.removeChild(a)
   }
 
+  // 采用助手结果:回填输入框并自动继续生成,省去再点一次「立即生成」
   const handleUseAssistant = () => {
-    if (assistantText.trim()) {
-      setPrompt(assistantText.trim())
-      setAssistantText('')
-      setAssistantMode(null)
-    }
+    const text = assistantText.trim()
+    if (!text) return
+    setPrompt(text)
+    setAssistantText('')
+    setAssistantMode(null)
+    handleGenerate(text)
   }
 
   return (
@@ -344,7 +362,11 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
             {quota && (
               <span
                 className="hy-quota-hint"
-                title={quota.isAdmin ? '混元资源包总量剩余（仅管理员可见）' : '每人每天免费额度，次日刷新'}
+                title={
+                  quota.isAdmin
+                    ? '混元资源包总量剩余（仅管理员可见；统计口径与云开发控制台一致，排除绕过本站的直接调用）'
+                    : '每人每天免费额度，次日刷新'
+                }
               >
                 {quota.isAdmin
                   ? `📦 资源包剩余 ${quota.packageRemaining.toLocaleString()} / ${quota.packageTotal.toLocaleString()} 张`
@@ -387,15 +409,29 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
               </button>
               <span className="hy-assist-hint">由混元大模型驱动，流式生成</span>
             </div>
+            {/* 超限常驻提醒:避免点击生成后"突然开始改写"让用户困惑 */}
+            {prompt.length > PROMPT_MAX && (
+              <div className="hy-over-limit-hint">
+                ⚠️ 提示词已超出 {PROMPT_MAX} 字上限（当前 {prompt.length} 字），点击「立即生成」时会自动由
+                AI 精简到 {PROMPT_MAX} 字以内，原输入不会被改动
+              </div>
+            )}
             {(assistantText || assistantBusy) && (
               <div className="hy-assistant-output">
+                {assistantMode === 'condense' && (
+                  <div className="hy-assistant-label">
+                    {assistantBusy
+                      ? `📝 提示词超过 ${PROMPT_MAX} 字上限，正在自动精简，生成时将采用精简结果`
+                      : '📝 以上是精简后的提示词，点击「采用此结果」可替换输入框内容'}
+                  </div>
+                )}
                 <div className="hy-assistant-text">
                   {assistantText || '正在思考…'}
                   {assistantBusy && <span className="hy-caret">▍</span>}
                 </div>
                 {!assistantBusy && (
                   <div className="hy-assistant-actions">
-                    <button className="btn hy-assist-btn" onClick={handleUseAssistant}>
+                    <button className="btn hy-assist-btn" onClick={() => handleUseAssistant()}>
                       ✓ 采用此结果
                     </button>
                     <button
@@ -506,7 +542,7 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
           )}
 
           {/* 生成按钮(加载中作为唯一进度指示:精简阶段与生成阶段文案不同) */}
-          <button className="btn btn-primary hy-generate-btn" onClick={handleGenerate} disabled={loading}>
+          <button className="btn btn-primary hy-generate-btn" onClick={() => handleGenerate()} disabled={loading}>
             {loading ? (
               <>
                 <span className="hy-spinner"></span>
