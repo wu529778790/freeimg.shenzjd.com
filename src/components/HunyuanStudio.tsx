@@ -19,6 +19,21 @@ type StatusType = 'idle' | 'loading' | 'success' | 'error'
 type Mode = 't2i' | 'i2i'
 type AssistMode = 'enhance' | 'translate' | 'condense'
 
+// ---- BYOK(自带腾讯云密钥):本地存储 key + 环境项类型 ----
+const BYOK_KEYS = {
+  secretId: 'hunyuan_tcb_secret_id',
+  secretKey: 'hunyuan_tcb_secret_key',
+  envId: 'hunyuan_tcb_env_id'
+}
+
+interface ByokEnv {
+  envId: string
+  alias: string
+  source: string
+  status: string
+  region: string
+}
+
 // /api/ai/quota 返回的配额信息:普通用户看今日剩余,管理员看资源包总量剩余
 interface QuotaInfo {
   isAdmin: boolean
@@ -66,6 +81,93 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
   const [wxUser, setWxUser] = useState<WxUserState | null>(null)
 
   useEffect(() => subscribeWxUser(setWxUser), [])
+
+  // ---- BYOK 状态:自带腾讯云密钥(SecretId/SecretKey/环境),额度烧在用户自己的环境 ----
+  const [byokOpen, setByokOpen] = useState(false)
+  const [secretId, setSecretId] = useState('')
+  const [secretKey, setSecretKey] = useState('')
+  const [envs, setEnvs] = useState<ByokEnv[]>([])
+  const [envId, setEnvId] = useState('')
+  const [envLoading, setEnvLoading] = useState(false)
+  const [envMsg, setEnvMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  // 三样齐全才算启用 BYOK
+  const isByok = !!(secretId.trim() && secretKey.trim() && envId)
+
+  // 挂载后从本地存储恢复 BYOK 配置(SSR 安全)
+  useEffect(() => {
+    const sid = localStorage.getItem(BYOK_KEYS.secretId) || ''
+    const skey = localStorage.getItem(BYOK_KEYS.secretKey) || ''
+    const eid = localStorage.getItem(BYOK_KEYS.envId) || ''
+    setSecretId(sid)
+    setSecretKey(skey)
+    if (sid && skey) setByokOpen(true)
+    if (sid && skey && eid) {
+      setEnvId(eid)
+      // 顺手把已存环境补进下拉展示(仅展示用途,以「加载我的环境」为准)
+      setEnvs([{ envId: eid, alias: '', source: '', status: '', region: '' }])
+    }
+  }, [])
+
+  // 用 SecretId/SecretKey 列出该密钥可访问的云开发环境
+  const loadByokEnvs = async () => {
+    if (!secretId.trim() || !secretKey.trim()) {
+      setEnvMsg({ type: 'err', text: '请先填写 SecretId 与 SecretKey' })
+      return
+    }
+    setEnvLoading(true)
+    setEnvMsg(null)
+    try {
+      const resp = await fetch('/api/ai/envs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secretId: secretId.trim(), secretKey: secretKey.trim() })
+      })
+      const data = await resp.json()
+      if (!resp.ok || !data.success) throw new Error(data.message || '加载环境失败')
+      const list: ByokEnv[] = data.envs || []
+      setEnvs(list)
+      if (list.length === 0) {
+        setEnvMsg({ type: 'err', text: '该密钥下没有可访问的云开发环境' })
+        return
+      }
+      // 默认选第一个;若之前选中的环境仍存在则保持
+      if (!list.some((e) => e.envId === envId)) setEnvId(list[0].envId)
+      setEnvMsg({ type: 'ok', text: `找到 ${list.length} 个环境，请选择领了「小程序成长计划」资源包的那个` })
+    } catch (err) {
+      console.error(err)
+      setEnvMsg({ type: 'err', text: err instanceof Error ? err.message : String(err) })
+    } finally {
+      setEnvLoading(false)
+    }
+  }
+
+  const saveByok = () => {
+    if (!secretId.trim() || !secretKey.trim()) {
+      setEnvMsg({ type: 'err', text: '请先填写 SecretId 与 SecretKey' })
+      return
+    }
+    if (!envId) {
+      setEnvMsg({ type: 'err', text: '请先「加载我的环境」并选择一个环境' })
+      return
+    }
+    localStorage.setItem(BYOK_KEYS.secretId, secretId.trim())
+    localStorage.setItem(BYOK_KEYS.secretKey, secretKey.trim())
+    localStorage.setItem(BYOK_KEYS.envId, envId)
+    setEnvMsg({ type: 'ok', text: '已保存并启用，生成图片将使用你自己的云开发额度' })
+    setByokOpen(false)
+  }
+
+  const clearByok = () => {
+    localStorage.removeItem(BYOK_KEYS.secretId)
+    localStorage.removeItem(BYOK_KEYS.secretKey)
+    localStorage.removeItem(BYOK_KEYS.envId)
+    setSecretId('')
+    setSecretKey('')
+    setEnvs([])
+    setEnvId('')
+    setEnvMsg(null)
+  }
 
   // 拉取配额:登录后展示今日剩余(普通用户)/资源包总量剩余(管理员),生成后刷新
   const refreshQuota = async () => {
@@ -233,13 +335,13 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
       setStatusMsg('图生图模式请先上传参考图')
       return
     }
-    // 未登录则弹出微信登录弹窗,登录完成后再继续
-    if (!(await ensureLogin())) return
+    // 未启用 BYOK 时需微信登录(平台额度);BYOK 自带用户环境额度,免登录直接生成
+    if (!isByok && !(await ensureLogin())) return
 
     setLoading(true)
     setResult(null)
     setStatus('loading')
-    setStatusMsg('混元生成中，通常需要 10~40 秒，请耐心等待…')
+    setStatusMsg(isByok ? '混元生成中（使用你的云开发额度），通常需要 10~40 秒…' : '混元生成中，通常需要 10~40 秒，请耐心等待…')
 
     try {
       // 提示词超过上限时,先自动用混元精简再生成;精简结果可能仍超限,最多再精简一轮
@@ -278,10 +380,13 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
       }
 
       const endpoint = mode === 't2i' ? '/api/ai/t2i' : '/api/ai/i2i'
-      const body =
+      const body: Record<string, unknown> =
         mode === 't2i'
           ? { prompt: effectivePrompt, size, revise }
           : { prompt: effectivePrompt, imageBase64: refImage!.base64 }
+      if (isByok) {
+        body.cred = { envId, secretId: secretId.trim(), secretKey: secretKey.trim() }
+      }
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -359,19 +464,117 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
             >
               🖼️ 图生图
             </button>
-            {quota && (
+            {isByok ? (
               <span
                 className="hy-quota-hint"
-                title={
-                  quota.isAdmin
-                    ? '混元资源包总量剩余（仅管理员可见；统计口径与云开发控制台一致，排除绕过本站的直接调用）'
-                    : '每人每天免费额度，次日刷新'
-                }
+                title="生成走你自己的云开发环境，额度由你的「小程序成长计划」资源包提供"
               >
-                {quota.isAdmin
-                  ? `📦 资源包剩余 ${quota.packageRemaining.toLocaleString()} / ${quota.packageTotal.toLocaleString()} 张`
-                  : `今日剩余 ${quota.remaining} / ${quota.dailyLimit} 张`}
+                🔑 使用你的云开发环境额度
               </span>
+            ) : (
+              quota && (
+                <span
+                  className="hy-quota-hint"
+                  title={
+                    quota.isAdmin
+                      ? '混元资源包总量剩余（仅管理员可见；统计口径与云开发控制台一致，排除绕过本站的直接调用）'
+                      : '每人每天免费额度，次日刷新'
+                  }
+                >
+                  {quota.isAdmin
+                    ? `📦 资源包剩余 ${quota.packageRemaining.toLocaleString()} / ${quota.packageTotal.toLocaleString()} 张`
+                    : `今日剩余 ${quota.remaining} / ${quota.dailyLimit} 张`}
+                </span>
+              )
+            )}
+          </div>
+
+          {/* BYOK:使用我自己的腾讯云密钥(自带额度) */}
+          <div className="hy-byok">
+            <div className="hy-byok-header">
+              <button
+                type="button"
+                className={`hy-byok-toggle${byokOpen ? ' open' : ''}`}
+                onClick={() => setByokOpen(!byokOpen)}
+              >
+                {isByok ? '🔑 已启用自带密钥生成' : '使用我自己的腾讯云密钥（自带额度）'}
+                <span className="hy-byok-arrow">{byokOpen ? '▲' : '▼'}</span>
+              </button>
+              {isByok && (
+                <span className="hy-byok-active" onClick={() => setByokOpen(true)}>
+                  当前环境：{envId}
+                </span>
+              )}
+            </div>
+            {byokOpen && (
+              <div className="hy-byok-body">
+                <div className="hy-byok-row">
+                  <input
+                    type="text"
+                    className="hy-byok-input"
+                    placeholder="SecretId（腾讯云 API 密钥 ID）"
+                    value={secretId}
+                    onChange={(e) => setSecretId(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <input
+                    type="password"
+                    className="hy-byok-input"
+                    placeholder="SecretKey（腾讯云 API 密钥 Key）"
+                    value={secretKey}
+                    onChange={(e) => setSecretKey(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                  <button className="btn hy-assist-btn" onClick={loadByokEnvs} disabled={envLoading}>
+                    {envLoading ? '加载中…' : '加载我的环境'}
+                  </button>
+                </div>
+                {envs.length > 0 && (
+                  <div className="hy-byok-row">
+                    <select
+                      className="hy-byok-select"
+                      value={envId}
+                      onChange={(e) => setEnvId(e.target.value)}
+                    >
+                      {envs.map((env) => (
+                        <option key={env.envId} value={env.envId}>
+                          {env.alias ? `${env.alias}（` : ''}
+                          {env.envId}
+                          {env.alias ? '）' : ''}
+                          {env.source ? ` · ${env.source}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="btn hy-assist-btn hy-byok-save" onClick={saveByok}>
+                      保存并启用
+                    </button>
+                    <button className="btn hy-assist-btn" onClick={clearByok}>
+                      清除
+                    </button>
+                  </div>
+                )}
+                {envMsg && <div className={`hy-byok-msg hy-byok-${envMsg.type}`}>{envMsg.text}</div>}
+                <div className="hy-hint">
+                  密钥仅保存在本浏览器 localStorage；每次生成会把 SecretId / SecretKey / 环境发给本站服务器
+                  代调用你的云开发环境，服务端不落库、不打日志。额度来自你自己环境的「小程序成长计划」
+                  资源包（10 亿 Token + 10 万张图）。获取密钥：
+                  <a
+                    href="https://console.cloud.tencent.com/cam/capi"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    腾讯云 API 密钥
+                  </a>{' '}
+                  · 领取资源包：
+                  <a
+                    href="https://developers.weixin.qq.com/minigame/dev/wxcloud/billing/ai-inspire-plan.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    小程序成长计划
+                  </a>
+                </div>
+              </div>
             )}
           </div>
 

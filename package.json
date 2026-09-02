@@ -20,6 +20,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1124.0",
+    "@cloudbase/manager-node": "^5.8.3",
     "@cloudbase/node-sdk": "^3.18.3",
     "@libsql/client": "^0.17.4",
     "@wu529778790/user-avatar": "^0.1.24",
@@ -29,7 +31,6 @@
     "wx-auth-sdk": "^1.2.30"
   },
   "devDependencies": {
-    "@cloudbase/manager-node": "^5.8.3",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

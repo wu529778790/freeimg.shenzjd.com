@@ -16,10 +16,10 @@ export default function HunyuanPage() {
       <section className="hunyuan-hero">
         <div className="container">
           <h1 className="hunyuan-title">
-            混元生图 <span className="hunyuan-badge">微信云开发额度</span>
+            混元生图 <span className="hunyuan-badge">可自带腾讯云额度</span>
           </h1>
           <p className="hunyuan-subtitle">
-            腾讯混元 3.0 模型 · 文生图 / 图生图 / AI 提示词润色 · 无需 API Key，直接使用
+            腾讯混元 3.0 模型 · 文生图 / 图生图 / AI 提示词润色 · 配置你自己的腾讯云密钥，即可使用你的「小程序成长计划」免费额度（10 亿 Token + 10 万张图）
           </p>
         </div>
       </section>
@@ -30,7 +30,7 @@ export default function HunyuanPage() {
       <section className="hunyuan-plan-note">
         <div className="container">
           <p>
-            本页免费生图额度由腾讯云开发 CloudBase「AI 灵感创意计划」提供，每日限量发放、先到先得，规则详见{' '}
+            本页免费额度由微信「小程序成长计划」免费资源包提供（绑定 CloudBase 环境），规则详见{' '}
             <a
               href="https://docs.cloudbase.net/ai/ai-inspire-plan"
               target="_blank"

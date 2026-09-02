@@ -20,6 +20,42 @@ export function getTcbApp() {
   return app
 }
 
+/**
+ * BYOK(自带密钥)模式:按请求携带的用户环境凭据动态 init。
+ * 额度跟随用户自己的云开发环境(小程序成长计划资源包),与平台实例互不影响。
+ * 按 envId+secretId 做 LRU 缓存,防止每请求都新建连接;最多保留最近 N 个实例。
+ */
+export interface TcbCredentials {
+  envId: string
+  secretId: string
+  secretKey: string
+}
+
+const BYOK_APP_CACHE_MAX = 10
+const byokApps = new Map<string, ReturnType<typeof tcb.init>>()
+
+export function getTcbAppFor(cred: TcbCredentials) {
+  const { envId, secretId, secretKey } = cred || {}
+  if (!envId || !secretId || !secretKey) {
+    throw new Error('缺少环境 ID / SecretId / SecretKey')
+  }
+  const key = `${envId}\n${secretId}`
+  const cached = byokApps.get(key)
+  if (cached) {
+    // 命中即刷新为最近使用
+    byokApps.delete(key)
+    byokApps.set(key, cached)
+    return cached
+  }
+  if (byokApps.size >= BYOK_APP_CACHE_MAX) {
+    const oldest = byokApps.keys().next().value
+    if (oldest) byokApps.delete(oldest as string)
+  }
+  const instance = tcb.init({ env: envId, secretId, secretKey, timeout: 120000 })
+  byokApps.set(key, instance)
+  return instance
+}
+
 // 文生图模型(旧 hunyuan-image 已于 2026-07 下线,勿改回)
 export const HY_T2I_MODEL = 'HY-Image-3.0-Plus-4090-Tob-v1.0'
 // 图生图模型(垫图)
@@ -53,8 +89,9 @@ export interface HunyuanImageParams {
 // 注意:平台默认水印是对应 AI 生成内容标识要求,去掉后合规责任在使用方
 export const HY_FOOTNOTE = process.env.TCB_FOOTNOTE ?? ' '
 
-type ImageGenParams = Parameters<ReturnType<typeof getImageModel>['generateImage']>[0]
-type ImageGenResult = Awaited<ReturnType<ReturnType<typeof getImageModel>['generateImage']>>
+type ImageModel = ReturnType<typeof getImageModel>
+type ImageGenParams = Parameters<ImageModel['generateImage']>[0]
+type ImageGenResult = Awaited<ReturnType<ImageModel['generateImage']>>
 
 /**
  * 生图调用包装:只对限流(429)和服务端抖动(5xx)隔 2 秒重试一次
@@ -65,8 +102,8 @@ type ImageGenResult = Awaited<ReturnType<ReturnType<typeof getImageModel>['gener
  * 注意:状态码取 TcbError.code,不要取 err.response —— TcbError 只有
  * code / message / requestId 三个字段,err.response 恒为 undefined。
  */
-export async function generateImageWithRetry(params: HunyuanImageParams): Promise<ImageGenResult> {
-  const call = () => getImageModel().generateImage(params as ImageGenParams)
+export async function generateImageOn(model: ImageModel, params: HunyuanImageParams): Promise<ImageGenResult> {
+  const call = () => model.generateImage(params as ImageGenParams)
   try {
     return await call()
   } catch (err) {
@@ -77,6 +114,11 @@ export async function generateImageWithRetry(params: HunyuanImageParams): Promis
     }
     throw err
   }
+}
+
+/** 平台实例(项目自己的 TCB_* 环境)生图 */
+export function generateImageWithRetry(params: HunyuanImageParams): Promise<ImageGenResult> {
+  return generateImageOn(getImageModel(), params)
 }
 
 /**

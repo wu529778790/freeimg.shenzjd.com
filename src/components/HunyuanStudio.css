@@ -434,3 +434,130 @@
     width: 100%;
   }
 }
+
+/* BYOK:自带腾讯云密钥面板 */
+.hy-byok {
+  margin-bottom: 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: var(--bg-soft);
+}
+
+.hy-byok-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hy-byok-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s;
+}
+
+.hy-byok-toggle:hover {
+  color: var(--primary);
+}
+
+.hy-byok-toggle.open {
+  color: var(--primary);
+}
+
+.hy-byok-arrow {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hy-byok-active {
+  font-size: 12px;
+  color: var(--success);
+  background: var(--success-soft);
+  padding: 2px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.hy-byok-body {
+  margin-top: 12px;
+}
+
+.hy-byok-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.hy-byok-input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.hy-byok-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.hy-byok-select {
+  flex: 1;
+  min-width: 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.hy-byok-save {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.hy-byok-save:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.hy-byok-msg {
+  font-size: 13px;
+  margin: 2px 0 8px;
+}
+
+.hy-byok-msg.hy-byok-ok {
+  color: var(--success);
+}
+
+.hy-byok-msg.hy-byok-err {
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .hy-byok-input,
+  .hy-byok-select {
+    min-width: 100%;
+  }
+
+  .hy-byok-save {
+    flex: 1;
+  }
+}
