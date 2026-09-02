@@ -60,17 +60,17 @@ export default function PromptCards({ prompts }: PromptCardsProps) {
             <div className="prompt-card-actions">
               <button
                 className="btn btn-primary prompt-btn"
-                onClick={() => handleUse(p, '/hunyuan')}
-                title="去混元 3.0 生图使用该提示词（免费额度，无需 Key）"
-              >
-                ✨ 混元生成
-              </button>
-              <button
-                className="btn btn-ghost prompt-btn"
                 onClick={() => handleUse(p, '/')}
                 title="去 Z-Image-Turbo 生成器使用该提示词（Gitee AI，需自带 Key）"
               >
                 🎨 Z-Image 生成
+              </button>
+              <button
+                className="btn btn-ghost prompt-btn"
+                onClick={() => handleUse(p, '/hunyuan')}
+                title="去混元 3.0 生图使用该提示词（免费额度，无需 Key）"
+              >
+                ✨ 混元生成
               </button>
               <button
                 className="btn btn-ghost prompt-btn prompt-btn-copy"
