@@ -19,6 +19,17 @@ type StatusType = 'idle' | 'loading' | 'success' | 'error'
 type Mode = 't2i' | 'i2i'
 type AssistMode = 'enhance' | 'translate' | 'condense'
 
+// /api/ai/quota 返回的配额信息:普通用户看今日剩余,管理员看资源包总量剩余
+interface QuotaInfo {
+  isAdmin: boolean
+  dailyLimit: number
+  used: number
+  remaining: number
+  packageTotal: number
+  packageUsed: number
+  packageRemaining: number
+}
+
 // 混元文生图支持的尺寸(实测:宽高 [512,2048] 且面积 ≤ 1024x1024,1280x1280 会 400)
 const HY_SIZE_OPTIONS = [
   { label: '1:1', size: '1024x1024', desc: '1024 × 1024' },
@@ -48,13 +59,30 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
 
   const [status, setStatus] = useState<StatusType>('idle')
   const [statusMsg, setStatusMsg] = useState('')
-  const [remaining, setRemaining] = useState<number | null>(null)
+  const [quota, setQuota] = useState<QuotaInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ dataUrl: string; ext: string } | null>(null)
   // 微信登录态:登录在导航栏头像处完成(全站共享),这里只订阅用于展示与拦截
   const [wxUser, setWxUser] = useState<WxUserState | null>(null)
 
   useEffect(() => subscribeWxUser(setWxUser), [])
+
+  // 拉取配额:登录后展示今日剩余(普通用户)/资源包总量剩余(管理员),生成后刷新
+  const refreshQuota = async () => {
+    try {
+      const resp = await fetch('/api/ai/quota')
+      if (!resp.ok) return
+      const data = await resp.json()
+      if (data.success) setQuota(data as QuotaInfo)
+    } catch {
+      // 配额服务不可用时静默隐藏额度提示
+    }
+  }
+
+  useEffect(() => {
+    if (wxUser) refreshQuota()
+    else setQuota(null)
+  }, [wxUser])
 
   // 确保已登录:未登录则弹出微信登录弹窗(小程序扫码/公众号验证码)
   const ensureLogin = async (): Promise<boolean> => {
@@ -256,12 +284,8 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
 
       setResult({ dataUrl: data.dataUrl, ext: 'png' })
       setStatus('success')
-      if (typeof data.remaining === 'number' && data.remaining >= 0) {
-        setRemaining(data.remaining)
-        setStatusMsg('图片生成成功！')
-      } else {
-        setStatusMsg('图片生成成功！')
-      }
+      setStatusMsg('图片生成成功！')
+      refreshQuota()
 
       onHistoryAdd({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -317,9 +341,14 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
             >
               🖼️ 图生图
             </button>
-            {remaining !== null && (
-              <span className="hy-quota-hint">
-                {remaining < 0 ? '管理员 · 不限量' : `今日剩余 ${remaining} 张`}
+            {quota && (
+              <span
+                className="hy-quota-hint"
+                title={quota.isAdmin ? '混元资源包总量剩余（仅管理员可见）' : '每人每天免费额度，次日刷新'}
+              >
+                {quota.isAdmin
+                  ? `📦 资源包剩余 ${quota.packageRemaining.toLocaleString()} / ${quota.packageTotal.toLocaleString()} 张`
+                  : `今日剩余 ${quota.remaining} / ${quota.dailyLimit} 张`}
               </span>
             )}
           </div>
