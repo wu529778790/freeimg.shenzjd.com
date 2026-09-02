@@ -14,10 +14,29 @@ export interface TcbCredentials {
   secretKey: string
 }
 
-const BYOK_APP_CACHE_MAX = 10
-const byokApps = new Map<string, ReturnType<typeof tcb.init>>()
+/**
+ * 类型锚:用「真实 SDK 调用」建立强类型(仅供类型推导,运行时不会执行)。
+ * 注意:不能写成 ReturnType<typeof tcb.init> —— tcb.init 有多个重载,直接取函数返回类型
+ * 会命中最宽签名,导致 ai().createImageModel('hunyuan-image') 的类型退化为 unknown/{}。
+ * 经函数体内字面量调用,TS 才能按参数形状命中正确重载。
+ */
+function byokAppAnchor() {
+  return tcb.init({ env: 'env-id', secretId: 'secret-id', secretKey: 'secret-key', timeout: 120000 })
+}
 
-export function getTcbAppFor(cred: TcbCredentials) {
+function byokImageModelAnchor() {
+  return byokAppAnchor().ai().createImageModel('hunyuan-image')
+}
+
+type TcbApp = ReturnType<typeof byokAppAnchor>
+type ImageModel = ReturnType<typeof byokImageModelAnchor>
+type ImageGenParams = Parameters<ImageModel['generateImage']>[0]
+type ImageGenResult = Awaited<ReturnType<ImageModel['generateImage']>>
+
+const BYOK_APP_CACHE_MAX = 10
+const byokApps = new Map<string, TcbApp>()
+
+export function getTcbAppFor(cred: TcbCredentials): TcbApp {
   const { envId, secretId, secretKey } = cred || {}
   if (!envId || !secretId || !secretKey) {
     throw new Error('缺少环境 ID / SecretId / SecretKey')
@@ -35,8 +54,8 @@ export function getTcbAppFor(cred: TcbCredentials) {
     if (oldest) byokApps.delete(oldest as string)
   }
   const instance = tcb.init({ env: envId, secretId, secretKey, timeout: 120000 })
-  byokApps.set(key, instance)
-  return instance
+  byokApps.set(key, instance as TcbApp)
+  return instance as TcbApp
 }
 
 // 文生图模型(旧 hunyuan-image 已于 2026-07 下线,勿改回)
@@ -54,9 +73,6 @@ export const HY_FOOTNOTE = process.env.TCB_FOOTNOTE ?? ' '
 // 文生图支持的尺寸(实测:宽高 [512,2048] 且面积 ≤ 1024x1024)
 export const HY_SIZES = ['1024x1024', '1280x720', '720x1280', '2048x512'] as const
 
-type TcbApp = ReturnType<typeof tcb.init>
-type ImageModel = ReturnType<ReturnType<TcbApp['ai']>['createImageModel']>
-
 // SDK 的 TS 类型比运行时收得窄(model 字面量/revise 布尔),这里用实际支持的宽松形态,在调用处收窄
 export interface HunyuanImageParams {
   model: string
@@ -66,9 +82,6 @@ export interface HunyuanImageParams {
   images?: string[]
   footnote?: string
 }
-
-type ImageGenParams = Parameters<ImageModel['generateImage']>[0]
-type ImageGenResult = Awaited<ReturnType<ImageModel['generateImage']>>
 
 /**
  * 生图调用包装:只对限流(429)和服务端抖动(5xx)隔 2 秒重试一次
