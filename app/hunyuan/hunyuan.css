@@ -61,3 +61,24 @@
     font-size: 26px;
   }
 }
+
+/* 页脚:免费额度来源说明 */
+.hunyuan-plan-note {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.hunyuan-plan-note p {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.hunyuan-plan-note a {
+  color: var(--primary);
+}
+
+.hunyuan-plan-note a:hover {
+  text-decoration: underline;
+}

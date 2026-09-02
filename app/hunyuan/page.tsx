@@ -25,6 +25,22 @@ export default function HunyuanPage() {
       </section>
 
       <HunyuanSection />
+
+      {/* 页脚:免费额度来源说明 */}
+      <section className="hunyuan-plan-note">
+        <div className="container">
+          <p>
+            本页免费生图额度由腾讯云开发 CloudBase「AI 灵感创意计划」提供，每日限量发放、先到先得，规则详见{' '}
+            <a
+              href="https://docs.cloudbase.net/ai/ai-inspire-plan"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              官方帮助文档 →
+            </a>
+          </p>
+        </div>
+      </section>
     </div>
   )
 }
