@@ -4,11 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { STYLE_PRESETS } from '../presets'
 import type { StylePreset } from '../presets'
 import type { HistoryItem } from '../types'
-import {
-  subscribeWxUser,
-  ensureWxLogin,
-  type WxUserState
-} from '../utils/wxauth-client'
 import './HunyuanStudio.css'
 
 interface HunyuanStudioProps {
@@ -32,17 +27,6 @@ interface ByokEnv {
   source: string
   status: string
   region: string
-}
-
-// /api/ai/quota 返回的配额信息:普通用户看今日剩余,管理员看资源包总量剩余
-interface QuotaInfo {
-  isAdmin: boolean
-  dailyLimit: number
-  used: number
-  remaining: number
-  packageTotal: number
-  packageUsed: number
-  packageRemaining: number
 }
 
 // 混元文生图支持的尺寸(实测:宽高 [512,2048] 且面积 ≤ 1024x1024,1280x1280 会 400)
@@ -74,16 +58,12 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
 
   const [status, setStatus] = useState<StatusType>('idle')
   const [statusMsg, setStatusMsg] = useState('')
-  const [quota, setQuota] = useState<QuotaInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ dataUrl: string; ext: string } | null>(null)
-  // 微信登录态:登录在导航栏头像处完成(全站共享),这里只订阅用于展示与拦截
-  const [wxUser, setWxUser] = useState<WxUserState | null>(null)
-
-  useEffect(() => subscribeWxUser(setWxUser), [])
 
   // ---- BYOK 状态:自带腾讯云密钥(SecretId/SecretKey/环境),额度烧在用户自己的环境 ----
-  const [byokOpen, setByokOpen] = useState(false)
+  // 默认展开引导配置;已保存配置的用户在恢复后收起为启用状态
+  const [byokOpen, setByokOpen] = useState(true)
   const [secretId, setSecretId] = useState('')
   const [secretKey, setSecretKey] = useState('')
   const [envs, setEnvs] = useState<ByokEnv[]>([])
@@ -101,7 +81,7 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     const eid = localStorage.getItem(BYOK_KEYS.envId) || ''
     setSecretId(sid)
     setSecretKey(skey)
-    if (sid && skey) setByokOpen(true)
+    if (sid && skey) setByokOpen(false)
     if (sid && skey && eid) {
       setEnvId(eid)
       // 顺手把已存环境补进下拉展示(仅展示用途,以「加载我的环境」为准)
@@ -167,35 +147,6 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     setEnvs([])
     setEnvId('')
     setEnvMsg(null)
-  }
-
-  // 拉取配额:登录后展示今日剩余(普通用户)/资源包总量剩余(管理员),生成后刷新
-  const refreshQuota = async () => {
-    try {
-      const resp = await fetch('/api/ai/quota')
-      if (!resp.ok) return
-      const data = await resp.json()
-      if (data.success) setQuota(data as QuotaInfo)
-    } catch {
-      // 配额服务不可用时静默隐藏额度提示
-    }
-  }
-
-  useEffect(() => {
-    if (wxUser) refreshQuota()
-    else setQuota(null)
-  }, [wxUser])
-
-  // 确保已登录:未登录则弹出微信登录弹窗(小程序扫码/公众号验证码)
-  const ensureLogin = async (): Promise<boolean> => {
-    if (wxUser) return true
-    const ok = await ensureWxLogin()
-    if (!ok) {
-      setStatus('error')
-      setStatusMsg('需要微信登录后才能生成图片')
-      return false
-    }
-    return true
   }
 
   // 从提示词库/历史记录「重新生成」过来时,读取待填入的提示词(挂载读取 + 同页事件监听)
@@ -270,12 +221,20 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
     return () => document.removeEventListener('paste', handlePaste)
   }, [])
 
-  // 调用 /api/ai/polish 并流式写入助手输出框,返回完整文本
+  // 调用 /api/ai/polish 并流式写入助手输出框,返回完整文本(带用户凭据,走用户自己环境的 hy3)
   const streamPolish = async (text: string, m: AssistMode, signal: AbortSignal): Promise<string> => {
     const resp = await fetch('/api/ai/polish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: text, mode: m }),
+      body: JSON.stringify(
+        isByok
+          ? {
+              prompt: text,
+              mode: m,
+              cred: { envId, secretId: secretId.trim(), secretKey: secretKey.trim() }
+            }
+          : { prompt: text, mode: m }
+      ),
       signal
     })
     if (!resp.ok || !resp.body) {
@@ -296,6 +255,12 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
 
   // 提示词助手按钮:润色扩写 / 翻译成英文
   const handlePolish = async (assistMode: 'enhance' | 'translate') => {
+    if (!isByok) {
+      setStatus('error')
+      setStatusMsg('请先在上方配置你的腾讯云密钥，AI 助手也使用你自己的额度')
+      setByokOpen(true)
+      return
+    }
     if (!prompt.trim()) {
       setStatus('error')
       setStatusMsg('请先输入提示词，再让助手润色')
@@ -335,13 +300,18 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
       setStatusMsg('图生图模式请先上传参考图')
       return
     }
-    // 未启用 BYOK 时需微信登录(平台额度);BYOK 自带用户环境额度,免登录直接生成
-    if (!isByok && !(await ensureLogin())) return
+    // 必须配置自己的腾讯云密钥(SecretId / SecretKey / 环境)才能生成
+    if (!isByok) {
+      setStatus('error')
+      setStatusMsg('请先在上方配置你的腾讯云密钥（SecretId / SecretKey / 环境）')
+      setByokOpen(true)
+      return
+    }
 
     setLoading(true)
     setResult(null)
     setStatus('loading')
-    setStatusMsg(isByok ? '混元生成中（使用你的云开发额度），通常需要 10~40 秒…' : '混元生成中，通常需要 10~40 秒，请耐心等待…')
+    setStatusMsg('混元生成中（使用你的云开发额度），通常需要 10~40 秒…')
 
     try {
       // 提示词超过上限时,先自动用混元精简再生成;精简结果可能仍超限,最多再精简一轮
@@ -384,21 +354,13 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
         mode === 't2i'
           ? { prompt: effectivePrompt, size, revise }
           : { prompt: effectivePrompt, imageBase64: refImage!.base64 }
-      if (isByok) {
-        body.cred = { envId, secretId: secretId.trim(), secretKey: secretKey.trim() }
-      }
+      body.cred = { envId, secretId: secretId.trim(), secretKey: secretKey.trim() }
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
       const data = await resp.json()
-      // 登录态失效(取关/Cookie 过期):重新弹登录,提示用户再点一次生成
-      if (resp.status === 401 && data.needAuth) {
-        setWxUser(null)
-        await ensureWxLogin()
-        throw new Error('登录已失效，请重新登录后再生成')
-      }
       if (!resp.ok || !data.success) {
         throw new Error(data.message || `生成失败(${resp.status})`)
       }
@@ -406,7 +368,6 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
       setResult({ dataUrl: data.dataUrl, ext: 'png' })
       setStatus('success')
       setStatusMsg('图片生成成功！')
-      refreshQuota()
 
       onHistoryAdd({
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -464,28 +425,8 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
             >
               🖼️ 图生图
             </button>
-            {isByok ? (
-              <span
-                className="hy-quota-hint"
-                title="生成走你自己的云开发环境，额度由你的「小程序成长计划」资源包提供"
-              >
-                🔑 使用你的云开发环境额度
-              </span>
-            ) : (
-              quota && (
-                <span
-                  className="hy-quota-hint"
-                  title={
-                    quota.isAdmin
-                      ? '混元资源包总量剩余（仅管理员可见；统计口径与云开发控制台一致，排除绕过本站的直接调用）'
-                      : '每人每天免费额度，次日刷新'
-                  }
-                >
-                  {quota.isAdmin
-                    ? `📦 资源包剩余 ${quota.packageRemaining.toLocaleString()} / ${quota.packageTotal.toLocaleString()} 张`
-                    : `今日剩余 ${quota.remaining} / ${quota.dailyLimit} 张`}
-                </span>
-              )
+            {isByok && (
+              <span className="hy-quota-hint">🔑 使用你的腾讯云环境额度</span>
             )}
           </div>
 
@@ -497,7 +438,7 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
                 className={`hy-byok-toggle${byokOpen ? ' open' : ''}`}
                 onClick={() => setByokOpen(!byokOpen)}
               >
-                {isByok ? '🔑 已启用自带密钥生成' : '使用我自己的腾讯云密钥（自带额度）'}
+                {isByok ? '🔑 已启用你的腾讯云密钥' : '配置你的腾讯云密钥（生成必填）'}
                 <span className="hy-byok-arrow">{byokOpen ? '▲' : '▼'}</span>
               </button>
               {isByok && (

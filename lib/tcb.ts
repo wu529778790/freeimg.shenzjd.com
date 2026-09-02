@@ -1,30 +1,13 @@
 import tcb from '@cloudbase/node-sdk'
 
 /**
- * 腾讯云开发 CloudBase AI 服务端单例
- * 凭据从环境变量读取:TCB_ENV_ID / TCB_SECRET_ID / TCB_SECRET_KEY
- * 密钥只能存在于服务端,绝不能暴露到浏览器
+ * 腾讯云开发 CloudBase AI —— 纯 BYOK(自带密钥)调用
+ * 平台不再持有自己的 TCB_* 环境实例;所有生成都走请求携带的用户凭据
+ * (envId + SecretId + SecretKey),额度烧在用户自己的云开发环境(小程序成长计划资源包)。
+ * 凭据由请求体经 HTTPS 传入,仅本次使用、不落库不打日志,按 envId+secretId 做 LRU 缓存。
  */
-let app: ReturnType<typeof tcb.init> | null = null
 
-export function getTcbApp() {
-  if (!app) {
-    const env = process.env.TCB_ENV_ID
-    const secretId = process.env.TCB_SECRET_ID
-    const secretKey = process.env.TCB_SECRET_KEY
-    if (!env || !secretId || !secretKey) {
-      throw new Error('缺少 TCB_ENV_ID / TCB_SECRET_ID / TCB_SECRET_KEY 环境变量')
-    }
-    app = tcb.init({ env, secretId, secretKey, timeout: 120000 })
-  }
-  return app
-}
-
-/**
- * BYOK(自带密钥)模式:按请求携带的用户环境凭据动态 init。
- * 额度跟随用户自己的云开发环境(小程序成长计划资源包),与平台实例互不影响。
- * 按 envId+secretId 做 LRU 缓存,防止每请求都新建连接;最多保留最近 N 个实例。
- */
+/** BYOK 凭据:用户自己的云开发环境三件套 */
 export interface TcbCredentials {
   envId: string
   secretId: string
@@ -63,16 +46,16 @@ export const HY_I2I_MODEL = 'HY-Image-v3.0-I2I-ToB-v1.0.1'
 // 对话模型(混元 hy3,走 cloudbase 渠道)
 export const HY_CHAT_MODEL = 'hy3'
 
+// 右下角水印文字(≤16 字符):
+// 默认单个空格=无水印(实测空串会回退成"AI生成");可设 TCB_FOOTNOTE=品牌名 定制
+// 注意:平台默认水印是对应 AI 生成内容标识要求,去掉后合规责任在使用方
+export const HY_FOOTNOTE = process.env.TCB_FOOTNOTE ?? ' '
+
 // 文生图支持的尺寸(实测:宽高 [512,2048] 且面积 ≤ 1024x1024)
 export const HY_SIZES = ['1024x1024', '1280x720', '720x1280', '2048x512'] as const
 
-export function getImageModel() {
-  return getTcbApp().ai().createImageModel('hunyuan-image')
-}
-
-export function getChatModel() {
-  return getTcbApp().ai().createModel('cloudbase')
-}
+type TcbApp = ReturnType<typeof tcb.init>
+type ImageModel = ReturnType<ReturnType<TcbApp['ai']>['createImageModel']>
 
 // SDK 的 TS 类型比运行时收得窄(model 字面量/revise 布尔),这里用实际支持的宽松形态,在调用处收窄
 export interface HunyuanImageParams {
@@ -84,12 +67,6 @@ export interface HunyuanImageParams {
   footnote?: string
 }
 
-// 右下角水印文字(≤16 字符):
-// 默认单个空格=无水印(实测空串会回退成"AI生成");可设 TCB_FOOTNOTE=品牌名 定制
-// 注意:平台默认水印是对应 AI 生成内容标识要求,去掉后合规责任在使用方
-export const HY_FOOTNOTE = process.env.TCB_FOOTNOTE ?? ' '
-
-type ImageModel = ReturnType<typeof getImageModel>
 type ImageGenParams = Parameters<ImageModel['generateImage']>[0]
 type ImageGenResult = Awaited<ReturnType<ImageModel['generateImage']>>
 
@@ -114,11 +91,6 @@ export async function generateImageOn(model: ImageModel, params: HunyuanImagePar
     }
     throw err
   }
-}
-
-/** 平台实例(项目自己的 TCB_* 环境)生图 */
-export function generateImageWithRetry(params: HunyuanImageParams): Promise<ImageGenResult> {
-  return generateImageOn(getImageModel(), params)
 }
 
 /**
@@ -172,13 +144,4 @@ export function passthroughTcbError(err: unknown): {
       requestId: upstream?.requestId ?? (e?.requestId || '')
     }
   }
-}
-
-/**
- * 从请求头提取客户端 IP(用于限流)
- */
-export function getClientIp(headers: Headers): string {
-  const xff = headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
-  return headers.get('x-real-ip') || 'unknown'
 }

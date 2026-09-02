@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getChatModel, passthroughTcbError, HY_CHAT_MODEL } from '@/lib/tcb'
+import {
+  getTcbAppFor,
+  passthroughTcbError,
+  HY_CHAT_MODEL,
+  type TcbCredentials
+} from '@/lib/tcb'
 
 /**
- * POST /api/ai/polish  提示词助手(混元 hy3 流式输出)
- * body: { prompt: string, mode?: 'enhance' | 'translate' | 'condense' }
+ * POST /api/ai/polish  提示词助手(混元 hy3 流式输出,纯 BYOK)
+ *
+ * 平台不再提供免费额度;必须携带用户自己的云开发环境凭据 cred
+ * { envId, secretId, secretKey },token 烧在用户环境的「小程序成长计划」资源包。
+ *
+ * body: { prompt: string, mode?: 'enhance' | 'translate' | 'condense', cred: TcbCredentials }
  * 返回: text/plain 流式文本(不走 SSE,前端按纯文本增量读取即可)
  */
 
@@ -23,7 +32,7 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 }
 
 export async function POST(request: NextRequest) {
-  let body: { prompt?: string; mode?: string }
+  let body: { prompt?: string; mode?: string; cred?: TcbCredentials }
   try {
     body = await request.json()
   } catch {
@@ -48,9 +57,19 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // 必须携带用户自己的云开发环境凭据
+  const cred = body.cred
+  if (!cred?.envId || !cred?.secretId || !cred?.secretKey) {
+    return NextResponse.json(
+      { success: false, message: '请先在上方配置你的腾讯云密钥（SecretId / SecretKey / 环境）' },
+      { status: 400 }
+    )
+  }
+
   let textStream: AsyncIterable<string>
   try {
-    const res = await getChatModel().streamText({
+    const model = getTcbAppFor(cred).ai().createModel('cloudbase')
+    const res = await model.streamText({
       model: HY_CHAT_MODEL,
       messages: [
         { role: 'system', content: system },
