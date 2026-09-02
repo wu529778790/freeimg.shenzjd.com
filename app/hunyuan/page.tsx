@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   keywords: ['混元生图', '腾讯混元', '小程序成长计划', 'AI 图片生成', '图生图', '免费生图', '提示词润色']
 }
 
-// 与首页同构:左侧锚点导航 + 宣传话术 → 真实生图工作台(自带密钥配置)+ 历史记录 → 帮助中心
+// 与首页同构:左侧锚点导航 + 宣传话术 → 真实生图工作台(自带密钥配置)+ 历史记录 → 使用教程
 export default function HunyuanPage() {
   return (
     <div className="hunyuan-page">
@@ -20,7 +20,7 @@ export default function HunyuanPage() {
         sections={[
           { id: 'generator', label: '在线生成' },
           { id: 'history', label: '生成历史' },
-          { id: 'help', label: '帮助中心' }
+          { id: 'tutorial', label: '使用教程' }
         ]}
       />
       <HunyuanHero />

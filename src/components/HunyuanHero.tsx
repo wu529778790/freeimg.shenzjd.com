@@ -29,7 +29,7 @@ export default function HunyuanHero() {
           <a href="#generator" className="btn btn-primary hero-btn">
             ✨ 立即开始生成
           </a>
-          <a href="#help" className="btn btn-ghost hero-btn">
+          <a href="#tutorial" className="btn btn-ghost hero-btn">
             📖 查看教程
           </a>
         </div>

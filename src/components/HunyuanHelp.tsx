@@ -1,4 +1,4 @@
-// 混元页帮助中心:与首页 Tutorial 同构(复用 Tutorial.css 全部样式)
+// 混元页使用教程:与首页 Tutorial 同构(复用 Tutorial.css 全部样式)
 // 教用户三步领取资源包(含创建环境)、配密钥、开始生成
 import './Tutorial.css'
 
@@ -29,10 +29,10 @@ const STEPS = [
 
 export default function HunyuanHelp() {
   return (
-    <section className="tutorial" id="help">
+    <section className="tutorial" id="tutorial">
       <div className="container">
         <div className="section-header">
-          <h2>帮助中心</h2>
+          <h2>使用教程</h2>
           <p>三步配置你自己的免费额度，开始 AI 创作</p>
         </div>
 

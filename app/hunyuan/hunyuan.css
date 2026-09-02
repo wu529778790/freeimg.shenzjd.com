@@ -1,7 +1,7 @@
 /* /hunyuan 页面布局(各屏样式分别见:
  *  HunyuanHero → src/components/Hero.css
  *  生图工作台/历史 → src/components/HunyuanStudio.css、History.css
- *  帮助中心 → src/components/Tutorial.css) */
+ *  使用教程 → src/components/Tutorial.css) */
 
 .hunyuan-page {
   padding-bottom: 48px;
