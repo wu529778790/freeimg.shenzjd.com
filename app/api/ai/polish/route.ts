@@ -93,9 +93,10 @@ export async function POST(request: NextRequest) {
     textStream = res.textStream
   } catch (err) {
     logApiError('polish', err, { ip, envId: cred.envId, elapsed: Date.now() - startedAt })
-    logApiDone('polish', Number((err as { code?: string | number })?.code) || 502, startedAt, { ip, reason: '上游调用失败' })
     // 上游怎么返回就怎么透出:状态码、错误正文均不加工
     const { status, payload } = passthroughTcbError(err)
+    // done 行补上游 requestId:422 这类上游不给正文的失败,只能靠它去云开发对账
+    logApiDone('polish', status, startedAt, { ip, reason: '上游调用失败', requestId: payload.requestId || undefined })
     return NextResponse.json(payload, { status })
   }
 

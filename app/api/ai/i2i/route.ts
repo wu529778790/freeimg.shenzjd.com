@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   getTcbAppFor,
   generateImageOn,
+  downloadImageAsDataUrl,
   passthroughTcbError,
   HY_I2I_MODEL,
   HY_FOOTNOTE,
@@ -99,12 +100,10 @@ export async function POST(request: NextRequest) {
     const url = res?.data?.[0]?.url
     if (!url) throw new Error('模型未返回图片 URL')
 
-    const imgResp = await fetch(url)
-    if (!imgResp.ok) throw new Error(`图片下载失败: ${imgResp.status}`)
-    const buf = Buffer.from(await imgResp.arrayBuffer())
-    const dataUrl = `data:image/png;base64,${buf.toString('base64')}`
+    // 签名 URL 24 小时失效,立即取回内容转 dataUrl(回取失败会自动重试,见 downloadImageAsDataUrl)
+    const { dataUrl, bytes } = await downloadImageAsDataUrl(url)
 
-    logApiDone('i2i', 200, startedAt, { ip, imageKB: Math.round(buf.length / 1024) })
+    logApiDone('i2i', 200, startedAt, { ip, imageKB: Math.round(bytes / 1024) })
     return NextResponse.json({
       success: true,
       dataUrl,
@@ -112,9 +111,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     logApiError('i2i', err, { ip, envId: cred.envId, elapsed: Date.now() - startedAt })
-    logApiDone('i2i', Number((err as { code?: string | number })?.code) || 502, startedAt, { ip, reason: '上游调用失败' })
     // 上游怎么返回就怎么透出:状态码、错误正文均不加工
     const { status, payload } = passthroughTcbError(err)
+    // done 行补上游 requestId:422 这类上游不给正文的失败,只能靠它去云开发对账
+    logApiDone('i2i', status, startedAt, { ip, reason: '上游调用失败', requestId: payload.requestId || undefined })
     return NextResponse.json(payload, { status })
   }
 }

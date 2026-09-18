@@ -84,26 +84,70 @@ export interface HunyuanImageParams {
 }
 
 /**
- * 生图调用包装:只对限流(429)和服务端抖动(5xx)隔 2 秒重试一次
+ * 生图调用包装:只对限流(429)和服务端抖动(5xx)重试,422 不重试
  *
- * 422 不重试:它是上游对请求本身的拒绝(多为提示词触发内容审核),
- * 同样的请求重发必然再失败,只会白白多等 2 秒并多消耗一次上游调用。
+ * 退避档位按错误类型分开(依据 2026-09-14~18 线上日志校准):
+ * - 429 是上游 QPM 限流,原来的 2 秒退避跨不过限流窗口(日志里 2 秒后重试仍 429,
+ *   隔 7 秒手动重发即成功),因此拉长到 5s / 15s
+ * - 5xx 是服务端瞬时抖动,2s / 5s 快速重试即有效
+ *
+ * 422 不重试:它是上游对请求本身的拒绝(多为内容审核),
+ * 同样的请求重发必然再失败,只会白白多等并多消耗一次上游调用。
  *
  * 注意:状态码取 TcbError.code,不要取 err.response —— TcbError 只有
  * code / message / requestId 三个字段,err.response 恒为 undefined。
  */
+const RETRY_DELAYS_429 = [5000, 15000]
+const RETRY_DELAYS_5XX = [2000, 5000]
+
 export async function generateImageOn(model: ImageModel, params: HunyuanImageParams): Promise<ImageGenResult> {
   const call = () => model.generateImage(params as ImageGenParams)
-  try {
-    return await call()
-  } catch (err) {
-    const status = Number((err as { code?: string | number })?.code)
-    if (status === 429 || (status >= 500 && status <= 599)) {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+  let lastError: unknown
+  // attempt 0 是首次调用,其后每轮按档位退避;两条档位长度一致,取 429 的长度做上界
+  for (let attempt = 0; attempt <= RETRY_DELAYS_429.length; attempt++) {
+    try {
       return await call()
+    } catch (err) {
+      lastError = err
+      const status = Number((err as { code?: string | number })?.code)
+      const delays = status === 429 ? RETRY_DELAYS_429 : status >= 500 && status <= 599 ? RETRY_DELAYS_5XX : null
+      const delay: number | undefined = delays?.[attempt]
+      // 不可重试的错误,或重试机会已用尽
+      if (delay === undefined) throw err
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
-    throw err
   }
+  throw lastError
+}
+
+/**
+ * 回取生成结果图:上游给的是 24 小时失效的签名 URL,必须服务端立刻取回内容,
+ * 转成 dataUrl 后再下发给浏览器。
+ *
+ * 这里独立重试(默认 2 次、间隔 1s):走到这一步生成已经成功、额度已经消耗,
+ * 因为一次网络抖动把结果丢掉纯属浪费(2026-09-16 线上就这样丢了 9 张图)。
+ * 重试仍失败则抛出带原因的 Error,交由 passthroughTcbError 兜底成 502。
+ */
+export async function downloadImageAsDataUrl(url: string, retries = 2): Promise<{ dataUrl: string; bytes: number }> {
+  let lastReason = ''
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const resp = await fetch(url)
+      if (!resp.ok) {
+        lastReason = `HTTP ${resp.status}`
+      } else {
+        const buf = Buffer.from(await resp.arrayBuffer())
+        if (buf.length > 0) {
+          return { dataUrl: `data:image/png;base64,${buf.toString('base64')}`, bytes: buf.length }
+        }
+        lastReason = '响应体为空'
+      }
+    } catch (err) {
+      lastReason = (err as Error)?.message || String(err)
+    }
+    if (attempt < retries) await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+  throw new Error(`生成图回取失败(已重试 ${retries} 次):${lastReason}`)
 }
 
 /**
@@ -113,7 +157,16 @@ export async function generateImageOn(model: ImageModel, params: HunyuanImagePar
  * - code 就是上游 HTTP 状态码(如 422、429),非状态码的业务错误码会兜底成 502
  * - message 是上游响应体原文,或上游响应体里的 message 字段
  * 因此直接:状态码用上游的、正文用上游的,额外补上 success/requestId 供前端判定。
+ *
+ * 例外:422 / 429 上游常返回空响应体,SDK 只能拼出
+ * "Request failed with status code 422" 这种给用户看等于没说的话,
+ * 仅在这类情况下补一句可执行的兜底文案;上游只要给了正文就一律用原文。
  */
+const EMPTY_BODY_FALLBACK: Record<number, string> = {
+  422: '请求被上游拒绝(422):提示词或参考图可能未通过内容审核,请调整后重试',
+  429: '上游限流(429):该模型每分钟请求数已达上限,请等十几秒后再试'
+}
+
 export function passthroughTcbError(err: unknown): {
   status: number
   payload: Record<string, unknown>
@@ -147,12 +200,19 @@ export function passthroughTcbError(err: unknown): {
     return null
   }
 
+  const upstreamMessage = pickMessage(upstream) || rawMessage
+  // SDK 拿不到响应体时会拼出通用文案,只有这种"没说原因"的情况下才兜底
+  const message =
+    upstreamMessage === `Request failed with status code ${status}`
+      ? EMPTY_BODY_FALLBACK[status] || upstreamMessage
+      : upstreamMessage
+
   return {
     status,
     payload: {
       ...(upstream || {}),
       success: false,
-      message: pickMessage(upstream) || rawMessage,
+      message,
       code: upstream?.code ?? e?.code,
       requestId: upstream?.requestId ?? (e?.requestId || '')
     }
