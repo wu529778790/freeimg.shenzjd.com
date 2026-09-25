@@ -103,8 +103,13 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secretId: secretId.trim(), secretKey: secretKey.trim() })
       })
-      const data = await resp.json()
-      if (!resp.ok || !data.success) throw new Error(data.message || '加载环境失败')
+      // 网关/代理可能在长请求中途断开并返回空响应体,json() 会抛 "Unexpected end of JSON input"
+      const data = await resp.json().catch(() => null)
+      if (!resp.ok || !data?.success) {
+        throw new Error(
+          data?.message || (resp.ok ? '服务器未返回有效响应，请重试' : `加载环境失败(${resp.status})`)
+        )
+      }
       const list: ByokEnv[] = data.envs || []
       setEnvs(list)
       if (list.length === 0) {
@@ -360,9 +365,11 @@ export default function HunyuanStudio({ onHistoryAdd }: HunyuanStudioProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
-      const data = await resp.json()
-      if (!resp.ok || !data.success) {
-        throw new Error(data.message || `生成失败(${resp.status})`)
+      const data = await resp.json().catch(() => null)
+      if (!resp.ok || !data?.success) {
+        throw new Error(
+          data?.message || (resp.ok ? '服务器未返回有效响应，请重试' : `生成失败(${resp.status})`)
+        )
       }
 
       setResult({ dataUrl: data.dataUrl, ext: 'png' })

@@ -42,7 +42,8 @@ export async function generateImage(
     throw new Error(`HTTP ${response.status}: ${errText}`)
   }
 
-  const data: GenerateResponse = await response.json()
+  const data: GenerateResponse | null = await response.json().catch(() => null)
+  if (!data) throw new Error('服务器未返回有效响应，请重试')
 
   if (!data.data || data.data.length === 0) {
     throw new Error('接口未返回图片数据')
