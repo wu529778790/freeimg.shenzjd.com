@@ -272,3 +272,40 @@
   color: var(--text-muted);
   font-size: 14px;
 }
+
+/* 加载骨架屏(loading.tsx) */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-soft) 50%, var(--bg-card) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-search {
+  max-width: 560px;
+  height: 44px;
+  margin: 16px auto 24px;
+}
+
+.skeleton-label {
+  display: inline-block;
+  width: 40px;
+  height: 18px;
+  margin-top: 8px;
+}
+
+.skeleton-chip {
+  display: inline-block;
+  width: 88px;
+  height: 36px;
+  border-radius: 20px;
+}
+
+.skeleton-card {
+  height: 180px;
+}

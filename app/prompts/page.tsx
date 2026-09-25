@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import PromptCards from '@/src/components/PromptCards'
 import { getCategories, getPrompts } from '@/lib/prompts'
 import './prompts.css'
@@ -77,14 +78,14 @@ export default async function PromptsPage({ searchParams }: PageProps) {
                   {groupCategories.map((c) => {
                     const active = String(category) === String(c.id)
                     return (
-                      <a
+                      <Link
                         key={c.id}
                         href={active ? buildUrl({ category: null, page: null }) : buildUrl({ category: c.id, page: null })}
                         className={`filter-chip ${active ? 'active' : ''}`}
                       >
                         {c.name}
                         <span className="chip-count">{c.count}</span>
-                      </a>
+                      </Link>
                     )
                   })}
                 </div>
@@ -110,17 +111,17 @@ export default async function PromptsPage({ searchParams }: PageProps) {
         {totalPages > 1 && (
           <div className="prompts-pagination">
             {page > 1 && (
-              <a href={buildUrl({ page: page - 1 })} className="btn btn-ghost">
+              <Link href={buildUrl({ page: page - 1 })} className="btn btn-ghost">
                 ← 上一页
-              </a>
+              </Link>
             )}
             <span className="pagination-info">
               {page} / {totalPages}
             </span>
             {page < totalPages && (
-              <a href={buildUrl({ page: page + 1 })} className="btn btn-ghost">
+              <Link href={buildUrl({ page: page + 1 })} className="btn btn-ghost">
                 下一页 →
-              </a>
+              </Link>
             )}
           </div>
         )}

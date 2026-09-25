@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
-import Navbar from '@/src/components/Navbar'
 import Footer from '@/src/components/Footer'
+import PageTabs from '@/src/components/PageTabs'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -26,10 +26,16 @@ export default function RootLayout({
         <link rel="icon" href="/vite.svg" />
       </head>
       <body>
-        <Navbar />
+        {/* 站点导航（组件内部自动加载 wx-auth-sdk 并静默 init，右上角自带登录头像） */}
+        <site-navbar />
+        <PageTabs />
         <main>{children}</main>
         <Footer />
         {/* 公众号 + 小程序浮窗 */}
+        <Script
+          src="https://unpkg.com/@wu529778790/site-navbar@latest/dist/site-navbar.wc.js"
+          strategy="afterInteractive"
+        />
         <Script
           src="https://unpkg.com/@wu529778790/floating-qr@latest/dist/floating-qr.wc.js"
           strategy="afterInteractive"

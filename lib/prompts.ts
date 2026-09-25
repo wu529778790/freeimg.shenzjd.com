@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { getDb } from './turso'
 import { rewriteImgUrl } from './cdn'
 import type { PromptCategory, PromptItem } from '@/src/types'
@@ -70,14 +71,20 @@ export interface PromptQuery {
   search?: string
 }
 
-/** 提示词列表查询(分页 + 筛选 + 搜索) */
+/** 提示词列表查询(分页 + 筛选 + 搜索)。
+ *  数据几乎不变,用 unstable_cache 进程内缓存 1 小时,免去每次请求都打 Turso */
 export async function getPrompts(query: PromptQuery = {}): Promise<{
   list: PromptItem[]
   total: number
 }> {
-  const db = getDb()
-  const page = Math.max(1, query.page || 1)
-  const pageSize = Math.min(100, Math.max(1, query.pageSize || 24))
+  return getPromptsCached(query)
+}
+
+const getPromptsCached = unstable_cache(
+  async (query: PromptQuery) => {
+    const db = getDb()
+    const page = Math.max(1, query.page || 1)
+    const pageSize = Math.min(100, Math.max(1, query.pageSize || 24))
 
   const where: string[] = []
   const args: (string | number)[] = []
@@ -111,22 +118,33 @@ export async function getPrompts(query: PromptQuery = {}): Promise<{
     list: listRes.rows.map((r) => rowToPrompt(r as unknown as PromptRow)),
     total
   }
-}
+  },
+  ['prompts-list'],
+  { revalidate: 3600, tags: ['prompts'] }
+)
 
 /** 首页热门提示词:每个分类取 1 条(featured 优先、views 高优先),共 limit 条 */
 export async function getHotPrompts(limit = 8): Promise<PromptItem[]> {
-  const db = getDb()
-  const res = await db.execute(
-    `SELECT * FROM (
-      SELECT ${BASE_COLUMNS}, ROW_NUMBER() OVER (
-        PARTITION BY COALESCE(category_id, 0) ORDER BY featured DESC, views DESC, id DESC
-      ) AS rn
-      FROM prompts
-    ) WHERE rn = 1 ORDER BY featured DESC, views DESC, id DESC LIMIT ?`,
-    [limit]
-  )
-  return res.rows.map((r) => rowToPrompt(r as unknown as PromptRow))
+  return getHotPromptsCached(limit)
 }
+
+const getHotPromptsCached = unstable_cache(
+  async (limit: number) => {
+    const db = getDb()
+    const res = await db.execute(
+      `SELECT * FROM (
+        SELECT ${BASE_COLUMNS}, ROW_NUMBER() OVER (
+          PARTITION BY COALESCE(category_id, 0) ORDER BY featured DESC, views DESC, id DESC
+        ) AS rn
+        FROM prompts
+      ) WHERE rn = 1 ORDER BY featured DESC, views DESC, id DESC LIMIT ?`,
+      [limit]
+    )
+    return res.rows.map((r) => rowToPrompt(r as unknown as PromptRow))
+  },
+  ['prompts-hot'],
+  { revalidate: 3600, tags: ['prompts'] }
+)
 
 /** 分类统计(用于提示词库筛选) */
 export interface CategoryInfo {
@@ -138,19 +156,27 @@ export interface CategoryInfo {
 }
 
 export async function getCategories(): Promise<CategoryInfo[]> {
-  const db = getDb()
-  const res = await db.execute(
-    `SELECT category_id AS id, category_name AS name, category_slug AS slug, category_dimension AS dimension, COUNT(*) AS count
-     FROM prompts
-     WHERE category_id IS NOT NULL
-     GROUP BY category_id, category_name, category_slug, category_dimension
-     ORDER BY dimension, id`
-  )
-  return res.rows.map((r) => ({
-    id: Number(r.id),
-    name: String(r.name),
-    slug: String(r.slug),
-    dimension: String(r.dimension),
-    count: Number(r.count)
-  }))
+  return getCategoriesCached()
 }
+
+const getCategoriesCached = unstable_cache(
+  async () => {
+    const db = getDb()
+    const res = await db.execute(
+      `SELECT category_id AS id, category_name AS name, category_slug AS slug, category_dimension AS dimension, COUNT(*) AS count
+       FROM prompts
+       WHERE category_id IS NOT NULL
+       GROUP BY category_id, category_name, category_slug, category_dimension
+       ORDER BY dimension, id`
+    )
+    return res.rows.map((r) => ({
+      id: Number(r.id),
+      name: String(r.name),
+      slug: String(r.slug),
+      dimension: String(r.dimension),
+      count: Number(r.count)
+    }))
+  },
+  ['prompts-categories'],
+  { revalidate: 3600, tags: ['prompts'] }
+)
