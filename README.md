@@ -104,7 +104,18 @@ npm start
 - 同 IP 每分钟请求数超过阈值（默认 40）
 - 同 IP 每分钟大分页请求超过阈值（`pageSize > 50`，默认 8 次）——对应 2026-10-26 排查到的爬虫行为：单 IP 一天近万次 `pageSize=100` 全量翻页
 
-封禁表在进程内存，时长累进 `1h → 24h → 7d → 30d`，重启清空。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响，页面路由（`/`、`/hunyuan`、`/prompts`）不经过守卫。
+封禁表在进程内存，时长累进 `1h → 24h → 7d → 30d`，重启清空。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响。
+
+覆盖范围：
+
+- 全部 `/api/*` —— route handler 内调用守卫，读运行时 env，`BOT_GUARD_KEY` / `BOT_GUARD=off` 随时可调
+- `/prompts` 页面 —— `src/middleware.ts` 拦截。该页是 `force-dynamic`，每翻一页都要查 Turso + SSR 渲染，爬虫循环翻页等于持续打库
+- 静态页 `/`、`/hunyuan` 不拦（构建期已预渲染成静态 HTML，不吃服务端算力）
+
+⚠ 两个落地约束：
+
+1. `middleware.ts` 必须放 `src/` 下。本项目存在遗留的 `src/pages`（只有 CSS），Next 会把 pagesDir 认成 `src/pages` 并只在 `src/` 里查找 middleware，放项目根目录会被**静默忽略**（`middleware-manifest.json` 为空、构建日志不会报错）。
+2. edge runtime 的 `process.env` 是构建时内联的，所以页面守卫的阈值固定为默认值（40 次/分钟），`BOT_GUARD` 开关与 `BOT_GUARD_KEY` 通行证只对 API 侧生效。页面与 API 的封禁表是两份独立进程内存（middleware 在 edge 沙箱里），但 UA 闸不依赖计数，脚本请求打哪一面都会被各自封掉。
 
 | 环境变量 | 默认 | 说明 |
 | --- | --- | --- |
