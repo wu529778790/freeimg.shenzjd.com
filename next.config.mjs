@@ -2,6 +2,10 @@
 const nextConfig = {
   // standalone 模式:输出可独立运行的服务(用于 Docker 部署)
   output: 'standalone',
+  // 进程内 data cache 上限,默认 50MB。实测一页 100 条提示词就有 363KB JSON,
+  // 爬虫用 pageSize=100 全量翻页(18190 条 = 182 页)能把这 50MB 打满 —— 收到 16MB,
+  // 重复请求的命中率靠边缘/CDN 头去挡,不靠吃服务器内存。
+  cacheMaxMemorySize: 16 * 1024 * 1024,
   // 三个页面内容公开且几乎不变,让 EdgeOne 等 CDN 缓存 HTML:
   // s-maxage 内 CDN 直接命中;过期后 stale-while-revalidate 先返回旧页再回源刷新
   async headers() {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import CloudBase from '@cloudbase/manager-node'
+import { describeEnvs } from '@/lib/tencent-api'
 import { clientIp, logApiDone, logApiError, logApiStart } from '@/lib/api-log'
+import { guardRequest } from '@/lib/bot-guard'
 
 /**
  * POST /api/ai/envs  自带密钥(BYOK):凭 SecretId + SecretKey 列出可访问的云开发环境
@@ -9,9 +10,17 @@ import { clientIp, logApiDone, logApiError, logApiStart } from '@/lib/api-log'
  *
  * 只做「列环境」这一件事:不查额度、不消耗任何调用,凭据仅本次使用、不落库不打日志。
  * 失败统一 401,避免把上游密钥相关细节透给前端。
+ *
+ * 2026-10-26:去掉 @cloudbase/manager-node(为这一个接口常驻 60MB RSS),
+ * 改走 lib/tencent-api.ts 的轻量 TC3 签名实现。
  */
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+
+  // 守卫放在读 body 之前
+  const blocked = guardRequest(request, { route: 'envs' })
+  if (blocked) return blocked
+
   let body: { secretId?: string; secretKey?: string }
   try {
     body = await request.json()
@@ -36,9 +45,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const manager = new CloudBase({ secretId, secretKey })
-    const { EnvList = [] } = await manager.env.listEnvs()
-    const envs = EnvList.map((env: { EnvId?: string; Alias?: string; Source?: string; Status?: string; Region?: string }) => ({
+    const list = await describeEnvs(secretId, secretKey)
+    const envs = list.map((env) => ({
       envId: env.EnvId || '',
       alias: env.Alias || '',
       source: env.Source || '',

@@ -36,6 +36,39 @@ type ImageGenResult = Awaited<ReturnType<ImageModel['generateImage']>>
 const BYOK_APP_CACHE_MAX = 10
 const byokApps = new Map<string, TcbApp>()
 
+/**
+ * 生图并发闸。
+ *
+ * 单个生图请求的峰值内存 ≈ 20MB(垫图 base64 最长 10MB + 解码 Buffer 7.5MB +
+ * 返回的 dataUrl 1MB 左右),而上游一次调用要挂 10~13 秒(422 失败也一样久)。
+ * 不限并发时,几十个请求同时在线就能吃掉几百 MB —— 线上 i2i 一天 400+ 次、
+ * 其中 1037 次是 10 秒级的 422 失败,叠起来就是内存尖峰。
+ *
+ * 超过上限排队等待,等太久(默认 15 秒)直接回 429,让浏览器自己重试,
+ * 而不是把请求堆在服务端内存里。
+ */
+const AI_MAX_CONCURRENT = Number(process.env.AI_MAX_CONCURRENT) || 4
+const AI_QUEUE_TIMEOUT_MS = Number(process.env.AI_QUEUE_TIMEOUT_MS) || 15000
+let aiActive = 0
+
+export async function withAiSlot<T>(fn: () => Promise<T>): Promise<T> {
+  const deadline = Date.now() + AI_QUEUE_TIMEOUT_MS
+  while (aiActive >= AI_MAX_CONCURRENT) {
+    if (Date.now() > deadline) {
+      const err = new Error('服务器繁忙，请稍后重试') as Error & { code?: number }
+      err.code = 429
+      throw err
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  aiActive++
+  try {
+    return await fn()
+  } finally {
+    aiActive--
+  }
+}
+
 export function getTcbAppFor(cred: TcbCredentials): TcbApp {
   const { envId, secretId, secretKey } = cred || {}
   if (!envId || !secretId || !secretKey) {

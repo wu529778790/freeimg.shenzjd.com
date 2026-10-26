@@ -29,8 +29,19 @@ export function maskSecret(id?: string): string {
   return id.length <= 6 ? '***' : `${id.slice(0, 6)}***`
 }
 
-/** 提取客户端 IP(x-forwarded-for 可能是链式,取第一个) */
+/**
+ * 提取客户端 IP。
+ *
+ * 可信顺序(2026-10-26 加):腾讯 EdgeOne 回源时会注入 EO-Connecting-IP 并覆盖客户端自带的同名头,
+ * 这层客户端伪造不了,优先用;其次用 X-Forwarded-For 第一段(EdgeOne 默认按客户端 IP 重写,
+ * 线上日志实测该值就是真实用户 IP,且分布合理)。
+ *
+ * 注意:不要优先用 x-real-ip —— 它是 nginx 的 $remote_addr,在 CDN 回源场景下是 EdgeOne
+ * 节点 IP,同一节点下的所有用户会共用一个地址,拿它做封禁会连坐整批真人。
+ */
 export function clientIp(request: Request): string {
+  const eo = request.headers.get('eo-connecting-ip')
+  if (eo && eo.trim()) return eo.trim()
   const xff = request.headers.get('x-forwarded-for')
   if (xff) return xff.split(',')[0].trim()
   return request.headers.get('x-real-ip') || '(未知)'

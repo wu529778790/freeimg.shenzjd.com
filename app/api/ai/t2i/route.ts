@@ -4,6 +4,7 @@ import {
   generateImageOn,
   downloadImageAsDataUrl,
   passthroughTcbError,
+  withAiSlot,
   HY_T2I_MODEL,
   HY_SIZES,
   HY_FOOTNOTE,
@@ -11,6 +12,7 @@ import {
   type HunyuanImageParams
 } from '@/lib/tcb'
 import { clientIp, logApiDone, logApiError, logApiStart, maskSecret } from '@/lib/api-log'
+import { guardRequest } from '@/lib/bot-guard'
 
 /**
  * POST /api/ai/t2i  混元文生图(纯 BYOK)
@@ -27,6 +29,11 @@ const PROMPT_MAX = 4000
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+
+  // 守卫放在读 body 之前(被封的请求连 body 都不解析)
+  const blocked = guardRequest(request, { route: 't2i' })
+  if (blocked) return blocked
+
   let body: {
     prompt?: string
     size?: string
@@ -88,20 +95,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const model = getTcbAppFor(cred).ai().createImageModel('hunyuan-image')
-    const res = await generateImageOn(model, params)
+    // 并发闸:与 i2i 共用同一个在途计数,避免文生图/图生图同时涌入把内存打满
+    const result = await withAiSlot(async () => {
+      const model = getTcbAppFor(cred).ai().createImageModel('hunyuan-image')
+      const res = await generateImageOn(model, params)
 
-    const url = res?.data?.[0]?.url
-    if (!url) throw new Error('模型未返回图片 URL')
+      const url = res?.data?.[0]?.url
+      if (!url) throw new Error('模型未返回图片 URL')
 
-    // 签名 URL 24 小时失效,立即取回内容转 dataUrl(回取失败会自动重试,见 downloadImageAsDataUrl)
-    const { dataUrl, bytes } = await downloadImageAsDataUrl(url)
+      // 签名 URL 24 小时失效,立即取回内容转 dataUrl(回取失败会自动重试,见 downloadImageAsDataUrl)
+      const { dataUrl, bytes } = await downloadImageAsDataUrl(url)
+      return { dataUrl, bytes, revisedPrompt: res?.data?.[0]?.revised_prompt || '' }
+    })
 
-    logApiDone('t2i', 200, startedAt, { ip, imageKB: Math.round(bytes / 1024) })
+    logApiDone('t2i', 200, startedAt, { ip, imageKB: Math.round(result.bytes / 1024) })
     return NextResponse.json({
       success: true,
-      dataUrl,
-      revisedPrompt: res?.data?.[0]?.revised_prompt || ''
+      dataUrl: result.dataUrl,
+      revisedPrompt: result.revisedPrompt
     })
   } catch (err) {
     logApiError('t2i', err, { ip, envId: cred.envId, elapsed: Date.now() - startedAt })

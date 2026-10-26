@@ -6,6 +6,7 @@ import {
   type TcbCredentials
 } from '@/lib/tcb'
 import { clientIp, logApiDone, logApiError, logApiStart, maskSecret } from '@/lib/api-log'
+import { guardRequest } from '@/lib/bot-guard'
 
 /**
  * POST /api/ai/polish  提示词助手(混元 hy3 流式输出,纯 BYOK)
@@ -34,6 +35,11 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+
+  // 守卫放在读 body 之前(被封的请求连 body 都不解析)
+  const blocked = guardRequest(request, { route: 'polish' })
+  if (blocked) return blocked
+
   let body: { prompt?: string; mode?: string; cred?: TcbCredentials }
   try {
     body = await request.json()

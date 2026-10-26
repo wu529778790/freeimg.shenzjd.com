@@ -4,12 +4,14 @@ import {
   generateImageOn,
   downloadImageAsDataUrl,
   passthroughTcbError,
+  withAiSlot,
   HY_I2I_MODEL,
   HY_FOOTNOTE,
   type TcbCredentials,
   type HunyuanImageParams
 } from '@/lib/tcb'
 import { clientIp, logApiDone, logApiError, logApiStart, maskSecret } from '@/lib/api-log'
+import { guardRequest } from '@/lib/bot-guard'
 
 /**
  * POST /api/ai/i2i  混元图生图(垫图,纯 BYOK)
@@ -29,6 +31,11 @@ const IMAGE_MAX_BYTES = 7.5 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   const startedAt = Date.now()
+
+  // 守卫放在读 body 之前:被封的请求不必再解析最大 10MB 的垫图 base64(直接省内存)
+  const blocked = guardRequest(request, { route: 'i2i' })
+  if (blocked) return blocked
+
   let body: { prompt?: string; imageBase64?: string; cred?: TcbCredentials }
   try {
     body = await request.json()
@@ -94,20 +101,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const model = getTcbAppFor(cred).ai().createImageModel('hunyuan-image')
-    const res = await generateImageOn(model, params)
+    // 并发闸:单请求峰值内存约 20MB(垫图 base64 + Buffer + 返回图),限住在途数量
+    const result = await withAiSlot(async () => {
+      const model = getTcbAppFor(cred).ai().createImageModel('hunyuan-image')
+      const res = await generateImageOn(model, params)
 
-    const url = res?.data?.[0]?.url
-    if (!url) throw new Error('模型未返回图片 URL')
+      const url = res?.data?.[0]?.url
+      if (!url) throw new Error('模型未返回图片 URL')
 
-    // 签名 URL 24 小时失效,立即取回内容转 dataUrl(回取失败会自动重试,见 downloadImageAsDataUrl)
-    const { dataUrl, bytes } = await downloadImageAsDataUrl(url)
+      // 签名 URL 24 小时失效,立即取回内容转 dataUrl(回取失败会自动重试,见 downloadImageAsDataUrl)
+      const { dataUrl, bytes } = await downloadImageAsDataUrl(url)
+      return { dataUrl, bytes, revisedPrompt: res?.data?.[0]?.revised_prompt || '' }
+    })
 
-    logApiDone('i2i', 200, startedAt, { ip, imageKB: Math.round(bytes / 1024) })
+    logApiDone('i2i', 200, startedAt, { ip, imageKB: Math.round(result.bytes / 1024) })
     return NextResponse.json({
       success: true,
-      dataUrl,
-      revisedPrompt: res?.data?.[0]?.revised_prompt || ''
+      dataUrl: result.dataUrl,
+      revisedPrompt: result.revisedPrompt
     })
   } catch (err) {
     logApiError('i2i', err, { ip, envId: cred.envId, elapsed: Date.now() - startedAt })

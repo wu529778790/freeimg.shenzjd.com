@@ -71,20 +71,31 @@ export interface PromptQuery {
   search?: string
 }
 
+/** 单页条数硬上限:100 条约 363KB JSON(实测),爬虫用 pageSize=100 全量翻页会把
+ *  Next 的 50MB 进程缓存打满,这里收到 50(Row 层再 clamp 一次,双保险) */
+export const PAGE_SIZE_MAX = 50
+/** 搜索词最大长度:LIKE 全表扫,超长关键词只增开销不增召回 */
+const SEARCH_MAX_LEN = 50
+
 /** 提示词列表查询(分页 + 筛选 + 搜索)。
  *  数据几乎不变,用 unstable_cache 进程内缓存 1 小时,免去每次请求都打 Turso */
 export async function getPrompts(query: PromptQuery = {}): Promise<{
   list: PromptItem[]
   total: number
 }> {
+  // 搜索词不可枚举,进缓存只会把 50MB 池刷爆(线上 9-25~10-26 被刷满过),
+  // 因此带 search 的请求直接查库;Turso 单页查询 p50 是 2ms/p90 9ms,扛得住
+  if (query.search && query.search.trim()) return queryPrompts(query)
   return getPromptsCached(query)
 }
 
-const getPromptsCached = unstable_cache(
-  async (query: PromptQuery) => {
-    const db = getDb()
-    const page = Math.max(1, query.page || 1)
-    const pageSize = Math.min(100, Math.max(1, query.pageSize || 24))
+async function queryPrompts(query: PromptQuery): Promise<{
+  list: PromptItem[]
+  total: number
+}> {
+  const db = getDb()
+  const page = Math.max(1, query.page || 1)
+  const pageSize = Math.min(PAGE_SIZE_MAX, Math.max(1, query.pageSize || 24))
 
   const where: string[] = []
   const args: (string | number)[] = []
@@ -99,7 +110,7 @@ const getPromptsCached = unstable_cache(
   }
   if (query.search && query.search.trim()) {
     where.push('(title LIKE ? OR description LIKE ? OR translated_content LIKE ? OR content LIKE ?)')
-    const kw = `%${query.search.trim()}%`
+    const kw = `%${query.search.trim().slice(0, SEARCH_MAX_LEN)}%`
     args.push(kw, kw, kw, kw)
   }
 
@@ -118,10 +129,12 @@ const getPromptsCached = unstable_cache(
     list: listRes.rows.map((r) => rowToPrompt(r as unknown as PromptRow)),
     total
   }
-  },
-  ['prompts-list'],
-  { revalidate: 3600, tags: ['prompts'] }
-)
+}
+
+const getPromptsCached = unstable_cache(queryPrompts, ['prompts-list'], {
+  revalidate: 3600,
+  tags: ['prompts']
+})
 
 /** 首页热门提示词:每个分类取 1 条(featured 优先、views 高优先),共 limit 条 */
 export async function getHotPrompts(limit = 8): Promise<PromptItem[]> {

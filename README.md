@@ -94,6 +94,31 @@ npm start
 - 接口：`POST /api/ai/t2i`、`POST /api/ai/i2i`、`POST /api/ai/polish`（流式）、`POST /api/ai/envs`（列环境）；生图/助手均需携带 `cred: { envId, secretId, secretKey }`
 - 辅助脚本：`node --env-file=.env.local scripts/tcb-test-byok.mjs --list` 列环境、`--env <envId>` 实测指定环境的可用生图模型
 
+## 🛡 访问守卫（bot-guard）
+
+`lib/bot-guard.ts` 对全部 `/api/*` 生效：**不是真人就直接封 IP**。
+
+判定（命中即封，返回 403 + `Retry-After`，不透露判定细节）：
+
+- UA 不像真实浏览器（curl / wget / python / axios / go-http-client / node-fetch / headless 等）
+- 同 IP 每分钟请求数超过阈值（默认 40）
+- 同 IP 每分钟大分页请求超过阈值（`pageSize > 50`，默认 8 次）——对应 2026-10-26 排查到的爬虫行为：单 IP 一天近万次 `pageSize=100` 全量翻页
+
+封禁表在进程内存，时长累进 `1h → 24h → 7d → 30d`，重启清空。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响，页面路由（`/`、`/hunyuan`、`/prompts`）不经过守卫。
+
+| 环境变量 | 默认 | 说明 |
+| --- | --- | --- |
+| `BOT_GUARD` | 开 | 设 `off` 整体关闭（应急） |
+| `BOT_GUARD_KEY` | 空 | 设置后，请求头 `x-freeimg-key` 命中即放行（自家脚本/对接用） |
+| `BOT_GUARD_ALLOW_IPS` | 空 | 精确 IP 白名单，逗号分隔 |
+| `BOT_GUARD_RATE_PER_MIN` | 40 | 每 IP 每分钟请求数阈值 |
+| `BOT_GUARD_BULK_PER_MIN` | 8 | 每 IP 每分钟大分页请求数阈值 |
+| `BOT_GUARD_BULK_PAGE_SIZE` | 50 | 大分页判定线（同时也是 `pageSize` 硬上限） |
+| `AI_MAX_CONCURRENT` | 4 | 生图接口在途并发上限（单请求峰值内存约 20MB） |
+| `AI_QUEUE_TIMEOUT_MS` | 15000 | 生图排队超时，超时回 429 |
+
+客户端 IP 取值链：`eo-connecting-ip`（EdgeOne 注入）→ `x-forwarded-for` 第一段 → `x-real-ip`。
+
 ## 🚢 部署
 
 项目内置 `Dockerfile` 与 `nginx.conf`，可通过 Docker 一键部署：

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getHotPrompts } from '@/lib/prompts'
 import { clientIp, logApiDone, logApiError, logApiStart } from '@/lib/api-log'
+import { guardRequest } from '@/lib/bot-guard'
 
 /**
  * GET /api/prompts/hot?limit=8
@@ -9,6 +10,10 @@ import { clientIp, logApiDone, logApiError, logApiStart } from '@/lib/api-log'
 export async function GET(request: NextRequest) {
   const startedAt = Date.now()
   const limit = Number(request.nextUrl.searchParams.get('limit')) || 8
+
+  const blocked = guardRequest(request, { route: 'prompts/hot' })
+  if (blocked) return blocked
+
   const ip = clientIp(request)
   logApiStart('prompts/hot', { ip, limit })
 

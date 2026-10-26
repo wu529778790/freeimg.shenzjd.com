@@ -17,6 +17,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# Node 堆护栏:V8 默认按物理内存推导上限(大机器上能冲到 1GB+)。
+# 峰值主要来自 SSR 渲染大列表与生图接口的图片 base64,压到 512MB 足够,
+# 超限时进程自己 GC/退出重启,而不是把整机内存吃光。
+ENV NODE_OPTIONS="--max-old-space-size=512"
 
 # 拷贝 standalone 产物、静态资源与 public
 COPY --from=builder /app/.next/standalone ./
