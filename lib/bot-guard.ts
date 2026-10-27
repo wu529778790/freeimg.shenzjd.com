@@ -30,8 +30,10 @@ const ALLOW_IPS = new Set(
 )
 /** 程序调用通行证:请求头 x-freeimg-key 命中即放行(给自家爬取/对接用) */
 const ACCESS_KEY = (process.env.BOT_GUARD_KEY || '').trim()
-/** 每分钟请求数阈值 */
+/** 每分钟请求数阈值(API 接口默认 40;页面侧由 middleware 传 90,给真人筛选留余量) */
 const RATE_PER_MIN = Number(process.env.BOT_GUARD_RATE_PER_MIN) || 40
+/** 预取/软导航的 RSC 请求每分钟上限:这类请求量大但单次成本等同一次导航,单独放宽 */
+const RSC_RATE_PER_MIN = Number(process.env.BOT_GUARD_RSC_PER_MIN) || 300
 /** 每分钟大分页(pageSize>50)阈值 */
 const BULK_PER_MIN = Number(process.env.BOT_GUARD_BULK_PER_MIN) || 8
 /** 大分页判定线 */
@@ -55,10 +57,12 @@ interface BanEntry {
 }
 
 interface HitEntry {
-  /** 窗口内的请求时间戳 */
+  /** 窗口内的「正常」请求时间戳(不含预取/软导航的 RSC 请求) */
   times: number[]
   /** 窗口内大分页请求时间戳 */
   bulk: number[]
+  /** 窗口内预取/软导航 RSC 请求时间戳(单独用更宽的阈值) */
+  rsc: number[]
 }
 
 const bans = new Map<string, BanEntry>()
@@ -133,22 +137,44 @@ function pruneHits(now: number): void {
 /**
  * 计数并按需封禁;返回 true 表示本次请求应被封。
  * @param bigPage 本次请求是否属于大分页(POST 接口传 false)
+ * @param isPrefetch 是否为浏览器预取/软导航的 RSC 请求(单独走宽阈值,不占正常额度)
+ * @param rateLimit 正常请求的每分钟上限
  */
-function tally(ip: string, bigPage: boolean, now: number, meta: string): boolean {
+function tally(
+  ip: string,
+  bigPage: boolean,
+  isPrefetch: boolean,
+  rateLimit: number,
+  now: number,
+  meta: string
+): boolean {
   pruneHits(now)
   let entry = hits.get(ip)
   if (!entry) {
-    entry = { times: [], bulk: [] }
+    entry = { times: [], bulk: [], rsc: [] }
     hits.set(ip, entry)
   }
   // 丢弃窗口外的时间戳
   entry.times = entry.times.filter((t) => now - t < WINDOW_MS)
   entry.bulk = entry.bulk.filter((t) => now - t < WINDOW_MS)
+  entry.rsc = entry.rsc.filter((t) => now - t < WINDOW_MS)
+
+  // 预取/软导航:只进 rsc 账本。它们是同一次页面导航的副产物(一页几十个分类链接
+  // 会一次性预取几十个),挤占正常额度就会误封真人,所以用独立的宽阈值。
+  if (isPrefetch) {
+    entry.rsc.push(now)
+    if (entry.rsc.length > RSC_RATE_PER_MIN) {
+      ban(ip, 'rate_rsc', `rsc=${entry.rsc.length}/${RSC_RATE_PER_MIN}perMin ${meta}`)
+      return true
+    }
+    return false
+  }
+
   entry.times.push(now)
   if (bigPage) entry.bulk.push(now)
 
-  if (entry.times.length > RATE_PER_MIN) {
-    ban(ip, 'rate', `count=${entry.times.length}/${RATE_PER_MIN}perMin ${meta}`)
+  if (entry.times.length > rateLimit) {
+    ban(ip, 'rate', `count=${entry.times.length}/${rateLimit}perMin ${meta}`)
     return true
   }
   if (bigPage && entry.bulk.length > BULK_PER_MIN) {
@@ -179,6 +205,8 @@ export interface GuardOptions {
   route: string
   /** 本次请求是否属于大分页(只有 /api/prompts 传 pageSize>50) */
   bigPage?: boolean
+  /** 正常请求的每分钟上限,默认 40(API 口径);页面侧传 90,给真人筛选留余量 */
+  ratePerMin?: number
 }
 
 /**
@@ -219,7 +247,20 @@ export function guardRequest(request: Request, opts: GuardOptions): NextResponse
   }
 
   // 闸二/三:频率与大分页频次
-  if (tally(ip, Boolean(opts.bigPage), now, meta)) {
+  //
+  // 浏览器预取/软导航会额外发 RSC 请求,它们是同一次页面导航的副产物 ——
+  // 用户打开一次带几十个分类链接的 /prompts 就能产生几十个,按正常额度计数会误封真人
+  // (2026-10-26 线上由此误封了 4 个真实设备:荣耀真机、移动 IPv6、日本家宽等)。
+  // 这类请求单独走更宽的阈值;UA 闸在上面已经拦掉了脚本。
+  //
+  // 判定同时看头和 URL 参数:Next 的预取会带 next-router-prefetch / rsc 头与 ?_rsc=xxx,
+  // 但内部头在某些链路会被剥掉,URL 参数更可靠。
+  const isPrefetch =
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('rsc') === '1' ||
+    request.url.includes('_rsc=')
+
+  if (tally(ip, Boolean(opts.bigPage), isPrefetch, opts.ratePerMin || RATE_PER_MIN, now, meta)) {
     return blockResponse(bans.get(ip)!.until, ip)
   }
 

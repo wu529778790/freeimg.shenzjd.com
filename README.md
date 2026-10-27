@@ -101,8 +101,10 @@ npm start
 判定（命中即封，返回 403 + `Retry-After`，不透露判定细节）：
 
 - UA 不像真实浏览器（curl / wget / python / axios / go-http-client / node-fetch / headless 等）
-- 同 IP 每分钟请求数超过阈值（默认 40）
+- 同 IP 每分钟请求数超过阈值（API 默认 40、页面 90）
 - 同 IP 每分钟大分页请求超过阈值（`pageSize > 50`，默认 8 次）——对应 2026-10-26 排查到的爬虫行为：单 IP 一天近万次 `pageSize=100` 全量翻页
+
+浏览器预取 / 软导航产生的 RSC 请求（带 `next-router-prefetch` / `rsc` 头或 `?_rsc=` 参数）单独记一笔、默认 300 次/分钟，不挤占正常请求额度。2026-10-26 首版用 40 次/分钟上线后，`/prompts` 页面几十个分类链接的预取把额度刷满，误封了 4 个真实设备，因此：页面内指向动态路由的 `<Link>` 一律 `prefetch={false}`（省掉几十次无谓 SSR），守卫侧再把这这类请求单独计量。
 
 封禁表在进程内存，时长累进 `1h → 24h → 7d → 30d`，重启清空。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响。
 
@@ -115,14 +117,15 @@ npm start
 ⚠ 两个落地约束：
 
 1. `middleware.ts` 必须放 `src/` 下。本项目存在遗留的 `src/pages`（只有 CSS），Next 会把 pagesDir 认成 `src/pages` 并只在 `src/` 里查找 middleware，放项目根目录会被**静默忽略**（`middleware-manifest.json` 为空、构建日志不会报错）。
-2. edge runtime 的 `process.env` 是构建时内联的，所以页面守卫的阈值固定为默认值（40 次/分钟），`BOT_GUARD` 开关与 `BOT_GUARD_KEY` 通行证只对 API 侧生效。页面与 API 的封禁表是两份独立进程内存（middleware 在 edge 沙箱里），但 UA 闸不依赖计数，脚本请求打哪一面都会被各自封掉。
+2. edge runtime 的 `process.env` 是构建时内联的，所以页面守卫的阈值写死在 `src/middleware.ts`（当前 90 次/分钟），`BOT_GUARD` 开关与 `BOT_GUARD_KEY` 通行证只对 API 侧生效。页面与 API 的封禁表是两份独立进程内存（middleware 在 edge 沙箱里），但 UA 闸不依赖计数，脚本请求打哪一面都会被各自封掉。
 
 | 环境变量 | 默认 | 说明 |
 | --- | --- | --- |
 | `BOT_GUARD` | 开 | 设 `off` 整体关闭（应急） |
 | `BOT_GUARD_KEY` | 空 | 设置后，请求头 `x-freeimg-key` 命中即放行（自家脚本/对接用） |
 | `BOT_GUARD_ALLOW_IPS` | 空 | 精确 IP 白名单，逗号分隔 |
-| `BOT_GUARD_RATE_PER_MIN` | 40 | 每 IP 每分钟请求数阈值 |
+| `BOT_GUARD_RATE_PER_MIN` | 40 | 每 IP 每分钟请求数阈值（API 侧；页面侧固定 90） |
+| `BOT_GUARD_RSC_PER_MIN` | 300 | 预取/软导航的 RSC 请求每分钟上限 |
 | `BOT_GUARD_BULK_PER_MIN` | 8 | 每 IP 每分钟大分页请求数阈值 |
 | `BOT_GUARD_BULK_PAGE_SIZE` | 50 | 大分页判定线（同时也是 `pageSize` 硬上限） |
 | `AI_MAX_CONCURRENT` | 4 | 生图接口在途并发上限（单请求峰值内存约 20MB） |

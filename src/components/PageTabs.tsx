@@ -22,7 +22,14 @@ export default function PageTabs() {
           const active = tab.href === '/' ? pathname === '/' : !!pathname?.startsWith(tab.href)
           const cls = `page-tab${active ? ' active' : ''}`
           return (
-            <Link key={tab.href} href={tab.href} className={cls}>
+            <Link
+              key={tab.href}
+              href={tab.href}
+              // /prompts 是 force-dynamic:预取等于让服务端提前跑一次完整 SSR + Turso 查询,
+              // 纯浪费;静态页(/, /hunyuan)保留默认预取以加速导航
+              prefetch={tab.href === '/prompts' ? false : undefined}
+              className={cls}
+            >
               {tab.label}
               {tab.badge && <span className="page-tab-badge">{tab.badge}</span>}
             </Link>

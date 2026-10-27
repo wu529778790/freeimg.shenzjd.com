@@ -80,6 +80,10 @@ export default async function PromptsPage({ searchParams }: PageProps) {
                     return (
                       <Link
                         key={c.id}
+                        // 关闭预取:本页是 force-dynamic,prefetch 会让每个分类链接都触发一次
+                        // 完整 SSR + Turso 查询(一页几十个分类 = 几十次白烧),且这些预取请求
+                        // 会把访问守卫的「每分钟请求数」刷满(2026-10-26 线上误封了 4 个真实设备)
+                        prefetch={false}
                         href={active ? buildUrl({ category: null, page: null }) : buildUrl({ category: c.id, page: null })}
                         className={`filter-chip ${active ? 'active' : ''}`}
                       >
@@ -111,7 +115,7 @@ export default async function PromptsPage({ searchParams }: PageProps) {
         {totalPages > 1 && (
           <div className="prompts-pagination">
             {page > 1 && (
-              <Link href={buildUrl({ page: page - 1 })} className="btn btn-ghost">
+              <Link prefetch={false} href={buildUrl({ page: page - 1 })} className="btn btn-ghost">
                 ← 上一页
               </Link>
             )}
@@ -119,7 +123,7 @@ export default async function PromptsPage({ searchParams }: PageProps) {
               {page} / {totalPages}
             </span>
             {page < totalPages && (
-              <Link href={buildUrl({ page: page + 1 })} className="btn btn-ghost">
+              <Link prefetch={false} href={buildUrl({ page: page + 1 })} className="btn btn-ghost">
                 下一页 →
               </Link>
             )}
