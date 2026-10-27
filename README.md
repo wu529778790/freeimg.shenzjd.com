@@ -100,13 +100,15 @@ npm start
 
 判定（命中即封，返回 403 + `Retry-After`，不透露判定细节）：
 
-- UA 不像真实浏览器（curl / wget / python / axios / go-http-client / node-fetch / headless 等）
-- 同 IP 每分钟请求数超过阈值（API 默认 40、页面 90）
-- 同 IP 每分钟大分页请求超过阈值（`pageSize > 50`，默认 8 次）——对应 2026-10-26 排查到的爬虫行为：单 IP 一天近万次 `pageSize=100` 全量翻页
+- UA 不像真实浏览器（curl / wget / python / axios / go-http-client / node-fetch / headless 等）→ **永久封**
+- 请求 `pageSize > 50` → **永久封**。页面自身只用 24 条，会这么调的只有外部程序；这条专门堵「低频抓取」——线上有来源每 10 分钟拉一次 `page=1&pageSize=100`，频率永远撞不到每分钟阈值
+- 同 IP 每分钟请求数超过阈值（API 40、页面 90）→ 累进封
 
-浏览器预取 / 软导航产生的 RSC 请求（带 `next-router-prefetch` / `rsc` 头或 `?_rsc=` 参数）单独记一笔、默认 300 次/分钟，不挤占正常请求额度。2026-10-26 首版用 40 次/分钟上线后，`/prompts` 页面几十个分类链接的预取把额度刷满，误封了 4 个真实设备，因此：页面内指向动态路由的 `<Link>` 一律 `prefetch={false}`（省掉几十次无谓 SSR），守卫侧再把这这类请求单独计量。
+封禁表在进程内存，重启清空。时长分两类：明确机器特征（脚本 UA、大分页）直接**永久**；频率超限可能是真人误判，给自愈机会，累进 `1h → 24h → 7d → 30d`。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响。
 
-封禁表在进程内存，时长累进 `1h → 24h → 7d → 30d`，重启清空。真浏览器 UA（含微信内置浏览器 / 小程序 WebView）不受 UA 闸影响。
+浏览器预取 / 软导航产生的 RSC 请求（带 `next-router-prefetch` / `rsc` 头或 `?_rsc=` 参数）单独记一笔、默认 300 次/分钟，不挤占正常请求额度。2026-10-26 首版用 40 次/分钟上线后，`/prompts` 页面几十个分类链接的预取把额度刷满，误封了 4 个真实设备，因此：页面内指向动态路由的 `<Link>` 一律 `prefetch={false}`（省掉几十次无谓 SSR），守卫侧再把这类请求单独计量。
+
+> 自己调试时注意：`/api/prompts?pageSize=100` 现在会永久封掉你的出口 IP。请用 `x-freeimg-key` 头带通行证，或把 IP 加进 `BOT_GUARD_ALLOW_IPS`。
 
 覆盖范围：
 
@@ -126,8 +128,7 @@ npm start
 | `BOT_GUARD_ALLOW_IPS` | 空 | 精确 IP 白名单，逗号分隔 |
 | `BOT_GUARD_RATE_PER_MIN` | 40 | 每 IP 每分钟请求数阈值（API 侧；页面侧固定 90） |
 | `BOT_GUARD_RSC_PER_MIN` | 300 | 预取/软导航的 RSC 请求每分钟上限 |
-| `BOT_GUARD_BULK_PER_MIN` | 8 | 每 IP 每分钟大分页请求数阈值 |
-| `BOT_GUARD_BULK_PAGE_SIZE` | 50 | 大分页判定线（同时也是 `pageSize` 硬上限） |
+| `BOT_GUARD_BULK_PAGE_SIZE` | 50 | 大分页判定线，超过即永久封（同时也是 `pageSize` 硬上限） |
 | `AI_MAX_CONCURRENT` | 4 | 生图接口在途并发上限（单请求峰值内存约 20MB） |
 | `AI_QUEUE_TIMEOUT_MS` | 15000 | 生图排队超时，超时回 429 |
 
