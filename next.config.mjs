@@ -28,7 +28,9 @@ const nextConfig = {
   },
   // CloudBase Node SDK 含动态依赖,不参与打包,运行时直接 require
   experimental: {
-    serverComponentsExternalPackages: ['@cloudbase/node-sdk']
+    serverComponentsExternalPackages: ['@cloudbase/node-sdk'],
+    // 启用 src/instrumentation.ts:server 启动时过滤「Server Action 不存在」报错刷屏
+    instrumentationHook: true
   }
 }
 
