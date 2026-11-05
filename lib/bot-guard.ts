@@ -10,6 +10,7 @@ import { clientIp } from './api-log'
  * 上限、并让 SSR 反复渲染百张卡片,内存与 CPU 全被白嫖。
  *
  * 判定口径(用户拍板:不是真人直接封,不做累计阈值放行):
+ *  0. IP 落在整段拉黑名单(BLOCK_CIDRS)→ 立即封
  *  1. UA 不像真实浏览器(python/curl/axios/go/node-fetch/headless...) → 立即封
  *  2. 同 IP 60 秒内请求数超阈值(默认 40) → 立即封
  *  3. 同 IP 60 秒内大分页(pageSize>50)请求超阈值(默认 8) → 立即封
@@ -45,6 +46,46 @@ const BULK_PAGE_SIZE = Number(process.env.BOT_GUARD_BULK_PAGE_SIZE) || 50
 
 /** 永久封禁标记(封禁表在进程内存,重启即清,不需要更久的时间戳) */
 const PERMANENT_UNTIL = Number.MAX_SAFE_INTEGER
+
+/**
+ * 整段拉黑名单(IPv4 CIDR)。
+ *
+ * 2026-11-04 日志复盘:SemrushBot 换了 20+ 个 IP(85.208.96.x / 185.191.171.x 两个 /24)
+ * 轮流抓 /prompts,逐 IP 封禁永远追不上换 IP 速度,只能整段拉黑。这类 SEO 爬虫
+ * 不会有真人从同段访问,误伤风险可忽略;以后再发现成段扫站的往这里加。
+ *
+ * 名单写死在代码里而非 env:middleware 跑在 edge 沙箱,运行时 env 读不到
+ * (构建时内联),env 改了页面侧也不会生效。
+ */
+const BLOCK_CIDRS = ['85.208.96.0/24', '185.191.171.0/24']
+
+/** IPv4 点分串 → 32 位整数;格式非法(含 IPv6)返回 null */
+function ipv4ToInt(ip: string): number | null {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip)
+  if (!m) return null
+  let n = 0
+  for (let i = 1; i <= 4; i++) {
+    const octet = Number(m[i])
+    if (octet > 255) return null
+    n = n * 256 + octet
+  }
+  return n
+}
+
+/** IP 落在黑名单 CIDR 内则返回命中的段,否则返回 null(仅支持 IPv4,IPv6 交给其它闸) */
+function inBlockedCidr(ip: string): string | null {
+  const n = ipv4ToInt(ip)
+  if (n === null) return null
+  for (const cidr of BLOCK_CIDRS) {
+    const [base, bitsStr] = cidr.split('/')
+    const bits = Number(bitsStr)
+    const baseInt = ipv4ToInt(base)
+    if (baseInt === null || !(bits >= 0 && bits <= 32)) continue
+    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0
+    if ((n & mask) === (baseInt & mask)) return cidr
+  }
+  return null
+}
 
 function isPermanent(until: number): boolean {
   return until === PERMANENT_UNTIL
@@ -237,6 +278,13 @@ export function guardRequest(request: Request, opts: GuardOptions): NextResponse
   const now = Date.now()
   const ua = request.headers.get('user-agent') || ''
   const meta = `route=${opts.route} ua="${uaBrief(ua)}"`
+
+  // 闸零:整段拉黑名单。命中直接永久封,后续请求走下面的封禁表短路。
+  const cidr = inBlockedCidr(ip)
+  if (cidr) {
+    ban(ip, 'cidr_block', `cidr=${cidr} ${meta}`, true)
+    return blockResponse(bans.get(ip)!.until, ip)
+  }
 
   // 已封禁直接拒
   const existing = bans.get(ip)
