@@ -87,8 +87,24 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           password: ${{ secrets.DEPLOY_PASSWORD }}
           script: |
+            set -e
             IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):latest"
             CONTAINER="${{ env.CONTAINER_NAME }}"
+
+            # 站点目录随 1Panel 版本变化：新版在 /opt/1panel/www/sites/，
+            # 旧版在 /opt/1panel/apps/openresty/openresty/www/sites/。两个位置都探一下。
+            ENV_FILE=""
+            for p in \
+              "/opt/1panel/www/sites/freeimg.shenzjd.com/index/.env" \
+              "/opt/1panel/apps/openresty/openresty/www/sites/freeimg.shenzjd.com/index/.env"; do
+              if [ -f "$p" ]; then ENV_FILE="$p"; break; fi
+            done
+            if [ -z "$ENV_FILE" ]; then
+              echo "❌ 未找到环境变量文件（已探测两个站点目录路径）"
+              exit 1
+            fi
+            echo "env 文件: $ENV_FILE"
+
             sudo docker pull "$IMAGE"
             sudo docker stop "$CONTAINER" || true
             sudo docker rm "$CONTAINER" || true
@@ -101,6 +117,24 @@ jobs:
               --log-opt max-size=10m \
               --log-opt max-file=3 \
               -p 6711:3000 \
-              --env-file /opt/1panel/apps/openresty/openresty/www/sites/freeimg.shenzjd.com/index/.env \
+              --env-file "$ENV_FILE" \
               "$IMAGE"
             sudo docker image prune -f
+
+            # 健康检查：容器必须 running 且端口能返回 200，
+            # 否则整个 job 失败（此前 docker run 失败也会报 success）
+            ok=0
+            for i in $(seq 1 20); do
+              if [ "$(sudo docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = "true" ] \
+                && curl -fsS -o /dev/null --max-time 5 http://127.0.0.1:6711/; then
+                ok=1
+                echo "✅ 容器就绪（第 ${i} 次探测）"
+                break
+              fi
+              sleep 3
+            done
+            if [ "$ok" = "0" ]; then
+              echo "❌ 容器启动后 60s 内未就绪，最近日志："
+              sudo docker logs --tail 80 "$CONTAINER" || true
+              exit 1
+            fi
