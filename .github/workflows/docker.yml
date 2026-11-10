@@ -111,6 +111,11 @@ jobs:
             sudo docker pull "$IMAGE"
             sudo docker stop "$CONTAINER" || true
             sudo docker rm "$CONTAINER" || true
+            # HOSTNAME=0.0.0.0：Next standalone 会把 Docker 注入的 HOSTNAME（容器主机名→
+            # eth0 IP）当绑定地址，只监听容器 IP → healthcheck 探 localhost 永远拒连（假 unhealthy）。
+            # --health-cmd 探 127.0.0.1：镜像内置 healthcheck 探 localhost，busybox wget 把
+            # localhost 解析成 ::1，应用只绑 IPv4 → 永远 fail（2026-11-11 实证）。
+            # ⚠️ 注释不能插进 \ 续行里（会被 shell 拼进命令吃掉参数，2026-11-11 翻过车）。
             sudo docker run -d \
               --name "$CONTAINER" \
               --restart unless-stopped \
@@ -120,11 +125,8 @@ jobs:
               --log-opt max-size=10m \
               --log-opt max-file=3 \
               -p 6711:3000 \
-              # Next standalone 会把 Docker 自动注入的 HOSTNAME（容器主机名→eth0 IP）
-              # 当绑定地址，导致只监听容器 IP：外部流量经 DNAT 正常、healthcheck 探
-              # localhost:3000 永远 Connection refused（假 unhealthy，2026-11-11 实证）。
-              # 显式绑 0.0.0.0 修复。
               -e HOSTNAME=0.0.0.0 \
+              --health-cmd "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1" \
               --env-file "$ENV_FILE" \
               "$IMAGE"
             sudo docker image prune -f
