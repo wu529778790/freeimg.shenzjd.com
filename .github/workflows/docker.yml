@@ -93,14 +93,17 @@ jobs:
 
             # 站点目录随 1Panel 版本变化：新版在 /opt/1panel/www/sites/，
             # 旧版在 /opt/1panel/apps/openresty/openresty/www/sites/。两个位置都探一下。
+            # 2026-11-11：.env 迁到站点同级 data/（index 是 OpenResty Web 根，防直读）。
+            # 新路径优先、旧路径兜底。
             ENV_FILE=""
             for p in \
+              "/opt/1panel/www/sites/freeimg.shenzjd.com/data/.env" \
               "/opt/1panel/www/sites/freeimg.shenzjd.com/index/.env" \
               "/opt/1panel/apps/openresty/openresty/www/sites/freeimg.shenzjd.com/index/.env"; do
               if [ -f "$p" ]; then ENV_FILE="$p"; break; fi
             done
             if [ -z "$ENV_FILE" ]; then
-              echo "❌ 未找到环境变量文件（已探测两个站点目录路径）"
+              echo "❌ 未找到环境变量文件（已探测三个路径）"
               exit 1
             fi
             echo "env 文件: $ENV_FILE"
@@ -117,6 +120,11 @@ jobs:
               --log-opt max-size=10m \
               --log-opt max-file=3 \
               -p 6711:3000 \
+              # Next standalone 会把 Docker 自动注入的 HOSTNAME（容器主机名→eth0 IP）
+              # 当绑定地址，导致只监听容器 IP：外部流量经 DNAT 正常、healthcheck 探
+              # localhost:3000 永远 Connection refused（假 unhealthy，2026-11-11 实证）。
+              # 显式绑 0.0.0.0 修复。
+              -e HOSTNAME=0.0.0.0 \
               --env-file "$ENV_FILE" \
               "$IMAGE"
             sudo docker image prune -f
